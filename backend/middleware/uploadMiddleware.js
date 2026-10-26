@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const uploadDirectory = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDirectory)) {
@@ -11,8 +12,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDirectory),
   filename: (req, file, cb) => {
     const extension = path.extname(file.originalname || '').toLowerCase();
-    const base = path.basename(file.originalname || 'document', extension).replace(/\s+/g, '-').replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${Date.now()}-${base}${extension}`);
+    cb(null, `${crypto.randomUUID()}${extension}`);
   },
 });
 

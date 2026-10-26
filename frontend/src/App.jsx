@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BrowserRouter, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Archive, Bell, BriefcaseBusiness, ClipboardCheck, LayoutDashboard, Link2, Settings as SettingsIcon, Users } from 'lucide-react';
+import { Archive, BriefcaseBusiness, CalendarDays, ClipboardCheck, LayoutDashboard, Link2, Settings as SettingsIcon, Users } from 'lucide-react';
+import HRLoginPage from './HRLoginPage.jsx';
+import OwnerDashboard from './OwnerDashboard.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+axios.defaults.withCredentials = true;
+const resolveApiAssetUrl = (url) => {
+  if (!url || /^https?:\/\//i.test(url)) return url;
+  const base = API_URL.replace(/\/+$/, '');
+  const path = url.startsWith('/api/') ? url.slice(4) : url;
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+};
 const APP_THEMES = [
   {
     id: 'obsidian',
     name: 'Obsidian + Emerald',
-    description: 'Premium business',
-    primary: '#10B981',
-    swatches: ['#0C0F0D', '#171D19', '#10B981', '#D1FAE5'],
+    description: 'Emerald AI workspace',
+    primary: '#34D399',
+    swatches: ['#0C0F0D', '#171D19', '#34D399', '#D1FAE5'],
   },
   {
     id: 'midnight',
@@ -104,7 +113,14 @@ const statusColor = (status) => {
 function App() {
   const [theme, setTheme] = useState(() => {
     const savedTheme = window.localStorage.getItem('cv-evolution-theme');
-    return APP_THEMES.some((option) => option.id === savedTheme) ? savedTheme : 'midnight';
+    const hasMigratedDefault = window.localStorage.getItem('cv-evolution-theme-default-migrated') === 'true';
+
+    if (!hasMigratedDefault) {
+      window.localStorage.setItem('cv-evolution-theme-default-migrated', 'true');
+      if (savedTheme === 'midnight') return 'obsidian';
+    }
+
+    return APP_THEMES.some((option) => option.id === savedTheme) ? savedTheme : 'obsidian';
   });
 
   useEffect(() => {
@@ -115,15 +131,53 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<HRLoginPage />} />
+        <Route path="/owner/*" element={<OwnerDashboard />} />
         <Route path="/apply/:jobId" element={<PublicJobPage theme={theme} />} />
         <Route path="/apply/:jobId/form" element={<PublicJobPage theme={theme} />} />
-        <Route path="*" element={<AppShell theme={theme} setTheme={setTheme} />} />
+        <Route path="*" element={<HRProtectedApp theme={theme} setTheme={setTheme} />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
-function AppShell({ theme, setTheme }) {
+function HRProtectedApp({ theme, setTheme }) {
+  const location = useLocation();
+  const [user, setUser] = useState(null);
+  const [checking, setChecking] = useState(true);
+  const [error, setError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    axios.get(`${API_URL}/auth/me`)
+      .then((response) => {
+        if (!active) return;
+        setUser(response.data.user);
+        setError('');
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setUser(null);
+        if (requestError.response?.status !== 401) {
+          setError(requestError.response?.data?.message || 'Unable to verify the HR session.');
+        } else {
+          setError('');
+        }
+      })
+      .finally(() => { if (active) setChecking(false); });
+    return () => { active = false; };
+  }, [retryCount]);
+
+  if (checking) return <div className="owner-loading" role="status">Verifying company access…</div>;
+  if (error) {
+    return <main className="auth-page"><section className="auth-card"><p className="auth-eyebrow">Company workspace</p><h1>Dashboard unavailable</h1><p className="auth-description" role="alert">{error}</p><button type="button" onClick={() => { setChecking(true); setRetryCount((count) => count + 1); }}>Retry connection</button></section></main>;
+  }
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  return <AppShell theme={theme} setTheme={setTheme} user={user} onLogout={() => setUser(null)} />;
+}
+
+function AppShell({ theme, setTheme, user, onLogout }) {
   const location = useLocation();
   const isRankingPage = location.pathname === '/rankings';
   const primaryBrandColor = APP_THEMES.find((option) => option.id === theme)?.primary || APP_THEMES[1].primary;
@@ -141,6 +195,14 @@ function AppShell({ theme, setTheme }) {
     },
     top_candidates: [],
   });
+  const logout = async () => {
+    try {
+      await axios.post(`${API_URL}/auth/logout`, {});
+      onLogout();
+    } catch (error) {
+      setLoadError(error.response?.data?.message || 'Unable to end this session.');
+    }
+  };
 
   const selectedJob = useMemo(
     () => jobs.find((job) => job.job_id === selectedJobId) || jobs[0],
@@ -148,10 +210,10 @@ function AppShell({ theme, setTheme }) {
   );
   const navigation = [
     { label: 'Dashboard', icon: LayoutDashboard, to: '/' },
-    { label: 'Job Link', icon: Link2, to: '/upload' },
-    { label: 'Ranking Page', icon: Users, to: '/rankings' },
-    { label: 'Results', icon: ClipboardCheck, to: '/results' },
-    { label: 'Questions & Interviews', icon: BriefcaseBusiness, to: '/interview-questions' },
+    { label: 'New Jobs', icon: Link2, to: '/upload' },
+    { label: 'Candidates', icon: Users, to: '/rankings' },
+    { label: 'Screening Results', icon: ClipboardCheck, to: '/results' },
+    { label: 'Analytics & Interviews', icon: BriefcaseBusiness, to: '/interview-questions' },
     { label: 'Settings', icon: SettingsIcon, to: '/settings' },
   ];
   useEffect(() => {
@@ -225,7 +287,7 @@ function AppShell({ theme, setTheme }) {
             <div className="app-logo flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-slate-900">CV</div>
             <div className="min-w-0">
               <p className="text-lg font-semibold leading-none text-slate-900">TalentPulse</p>
-              <p className="mt-1 text-xs text-slate-500">CV Evaluation Platform</p>
+              <p className="mt-1 truncate text-xs text-slate-500">{user.company_name || 'Company HR workspace'}</p>
             </div>
           </div>
 
@@ -233,37 +295,39 @@ function AppShell({ theme, setTheme }) {
             <div className="hidden max-w-64 truncate rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 sm:block">
               {selectedJob ? selectedJob.title : 'No job selected'}
             </div>
-            <button type="button" aria-label="Notifications" className="relative grid h-10 w-10 place-items-center rounded-full border border-slate-200 bg-white text-lg text-slate-600 transition hover:bg-slate-50">
-              <Bell size={18} aria-hidden="true" /><span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
-            </button>
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-teal-50 text-sm font-semibold text-teal-700" aria-label="User profile">TP</div>
+            <span className="hr-header-date hidden lg:inline-flex"><CalendarDays size={16} aria-hidden="true" />{new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+            <span className="hidden text-sm font-medium text-slate-700 md:block">{user.name || user.username}</span>
+            <button type="button" className="hr-logout-button" onClick={logout}>Sign out</button>
           </div>
         </div>
-        <nav className="app-top-nav border-t border-slate-100" aria-label="Main navigation">
-          <div className="mx-auto flex max-w-6xl gap-7 overflow-x-auto px-4 sm:px-6">
-            {navigation.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `app-top-nav-link flex shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium transition ${isActive ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                <span aria-hidden="true"><item.icon size={18} strokeWidth={1.8} /></span>
-                <span className="nav-link-label">{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
-        </nav>
       </header>
 
-      <div className={`app-layout mx-auto w-full ${isRankingPage ? 'ranking-layout' : 'max-w-6xl px-4 py-8 sm:px-6'}`}>
-        <main className="app-main min-w-0">
-          <Routes>
-            <Route path="/" element={<DashboardPage dashboard={dashboard} jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
-            <Route path="/new-job" element={<NewJobPage createJob={createJob} />} />
-            <Route path="/job-requirements" element={<NewJobPage createJob={createJob} />} />
-            <Route path="/upload" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} />} />
-            <Route path="/rankings" element={<RankingsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} saveFeedback={saveFeedback} />} />
-            <Route path="/results" element={<ResultsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
-            <Route path="/interview-questions" element={<InterviewQuestionsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
-            <Route path="/settings" element={<SettingsPage selectedJobId={selectedJobId} theme={theme} setTheme={setTheme} />} />
-          </Routes>
-        </main>
+      <div className="hr-workspace-layout">
+        <aside className="hr-sidebar">
+          <nav aria-label="Company navigation">
+            {navigation.map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `hr-sidebar-link ${isActive ? 'is-active' : ''}`}>
+                <item.icon size={19} strokeWidth={1.8} aria-hidden="true" />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+          <div className="hr-sidebar-company"><span className="hr-sidebar-company-mark">{(user.company_name || 'C').slice(0, 1).toUpperCase()}</span><span><strong>{user.company_name}</strong><small>Private workspace</small></span></div>
+        </aside>
+        <div className={`app-layout mx-auto w-full ${isRankingPage ? 'ranking-layout' : 'max-w-6xl px-4 py-8 sm:px-6'}`}>
+          <main className="app-main min-w-0">
+            <Routes>
+              <Route path="/" element={<DashboardPage dashboard={dashboard} jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
+              <Route path="/new-job" element={<NewJobPage createJob={createJob} />} />
+              <Route path="/job-requirements" element={<NewJobPage createJob={createJob} />} />
+              <Route path="/upload" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} />} />
+              <Route path="/rankings" element={<RankingsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} saveFeedback={saveFeedback} />} />
+              <Route path="/results" element={<ResultsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
+              <Route path="/interview-questions" element={<InterviewQuestionsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
+              <Route path="/settings" element={<SettingsPage selectedJobId={selectedJobId} theme={theme} setTheme={setTheme} />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </div>
   );
@@ -287,9 +351,9 @@ function DashboardPage({ dashboard, jobs, selectedJobId, setSelectedJobId }) {
     <div className="app-page dashboard-page space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-blue-400">Overview</p>
-          <h2 className="mt-2 text-4xl font-bold tracking-tight text-white">CV Evaluation Dashboard</h2>
-          <p className="mt-2 max-w-lg text-[15px] leading-6 text-slate-300">Review and evaluate candidates efficiently with AI-powered CV analysis.</p>
+          <p className="page-header-eyebrow">Job pipeline</p>
+          <h2 className="mt-2 text-4xl font-bold tracking-tight text-white">CV Screening Dashboard</h2>
+          <p className="page-header-summary">Recruitment activity and candidate screening overview for your company workspace.</p>
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -662,6 +726,7 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [brandColor, setBrandColor] = useState(primaryBrandColor);
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
   const [requiredSkills, setRequiredSkills] = useState('');
@@ -688,6 +753,7 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
     setTitle(job?.title || '');
     setDescription(job?.description || '');
     setCompanyName(job?.company_name || '');
+    setBrandColor(/^#[0-9a-f]{6}$/i.test(job?.brand_color || '') ? job.brand_color : primaryBrandColor);
     setLogoPreview(job?.brand_logo_url || '');
     setLogoFile(null);
     setRequiredSkills((job?.required_skills || job?.rubric?.must_have || []).join('\n'));
@@ -702,8 +768,11 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
     if (logoPreview.startsWith('blob:')) URL.revokeObjectURL(logoPreview);
   }, [logoPreview]);
 
-  const applicationLink = selectedJob
+  const jobPageLink = selectedJob
     ? new URL(`/apply/${encodeURIComponent(selectedJob.job_id)}`, window.location.origin).toString()
+    : '';
+  const applicationLink = selectedJob
+    ? new URL(`/apply/${encodeURIComponent(selectedJob.job_id)}/form#application-form`, window.location.origin).toString()
     : '';
 
   const updateField = (fieldId, updates) => {
@@ -753,7 +822,7 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
       description,
       responsibilities: descriptionText,
       company_name: companyName.trim(),
-      brand_color: primaryBrandColor,
+      brand_color: brandColor,
       application_fields: fields,
       required_skills: skills,
       required_qualifications: qualificationList,
@@ -824,32 +893,31 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
         )}
 
         <form onSubmit={saveJob} className="space-y-7">
-          <section className="company-branding-panel grid gap-5 rounded-xl border border-slate-200 bg-slate-50/70 p-4 md:grid-cols-2">
-            <div className="space-y-4">
-              <h3 className="font-semibold text-slate-900">Company branding</h3>
+          <section className="company-branding-panel space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-slate-900">Company branding</h3>
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                Brand color
+                <input type="color" value={brandColor} onChange={(event) => setBrandColor(event.target.value)} aria-label="Company brand color" className="company-brand-color-picker" />
+                <span className="font-mono uppercase">{brandColor}</span>
+              </label>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
               <label className="block text-sm font-medium text-slate-700">
                 Company name
                 <input value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="company-branding-control mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500" placeholder="Your company" />
               </label>
-              <div className="text-sm font-medium text-slate-700">
-                Brand colors
-                <p className="mt-1 text-sm font-normal text-slate-500">Aqua blue and indigo</p>
-                <div className="mt-2 flex gap-2" aria-label="Aqua blue and indigo brand palette">
-                  <span className="h-6 w-6 rounded-full border border-cyan-300 bg-cyan-400" aria-label="Aqua blue" />
-                  <span className="h-6 w-6 rounded-full border border-indigo-400 bg-indigo-500" aria-label="Indigo" />
-                </div>
-              </div>
+              <label className="block text-sm font-medium text-slate-700">
+                Company logo
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" onChange={(event) => {
+                  const image = event.target.files?.[0] || null;
+                  setLogoFile(image);
+                  setLogoPreview(image ? URL.createObjectURL(image) : selectedJob?.brand_logo_url || '');
+                }} className="company-branding-control mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm file:mr-3 file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700" />
+                <span className="mt-1 block text-xs font-normal text-slate-500">JPEG, PNG, WebP or GIF (up to 5 MB).</span>
+                {logoPreview && <img src={logoPreview} alt="Company logo preview" className="company-logo-preview mt-3 h-16 max-w-48 rounded-lg border border-slate-200 object-contain p-2" />}
+              </label>
             </div>
-            <label className="block text-sm font-medium text-slate-700">
-              Company logo
-              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" onChange={(event) => {
-                const image = event.target.files?.[0] || null;
-                setLogoFile(image);
-                setLogoPreview(image ? URL.createObjectURL(image) : selectedJob?.brand_logo_url || '');
-              }} className="company-branding-control mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm file:mr-3 file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700" />
-              <span className="mt-1 block text-xs font-normal text-slate-500">JPEG, PNG, WebP or GIF (up to 5 MB).</span>
-              {logoPreview && <img src={logoPreview} alt="Company logo preview" className="company-logo-preview mt-3 h-16 max-w-48 rounded-lg border border-slate-200 object-contain p-2" />}
-            </label>
           </section>
 
           <label className="block text-sm font-medium text-slate-700">
@@ -915,7 +983,7 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <input aria-label="Application link" readOnly value={applicationLink} onFocus={(event) => event.target.select()} className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-700" />
           <button type="button" onClick={copyLink} className="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-900" style={{ backgroundColor: primaryBrandColor }}>{copied ? 'Copied' : 'Copy link'}</button>
-          <a href={applicationLink} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">Preview job page</a>
+          <a href={jobPageLink} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">Preview job page</a>
         </div>
       </section>}
     </div>
@@ -976,14 +1044,25 @@ function usePublicJob(jobId) {
 
 function PublicJobPage({ theme }) {
   const { jobId } = useParams();
+  const location = useLocation();
   const { job, loading, loadError } = usePublicJob(jobId);
-  const brandColor = APP_THEMES.find((option) => option.id === theme)?.primary || APP_THEMES[1].primary;
+  const themeBrandColor = APP_THEMES.find((option) => option.id === theme)?.primary || APP_THEMES[1].primary;
+  const brandColor = /^#[0-9a-f]{6}$/i.test(job?.brand_color || '') ? job.brand_color : themeBrandColor;
   const requirementSections = [
     { title: 'Required skills', items: job?.required_skills?.length ? job.required_skills : job?.rubric?.must_have || [] },
     { title: 'Qualifications', items: job?.required_qualifications || [] },
     { title: 'Education', items: job?.education_requirements || [] },
     { title: 'Other requirements', items: job?.other_requirements || [] },
   ].filter((section) => section.items.length);
+
+  useEffect(() => {
+    if (loading || !job || !location.pathname.endsWith('/form')) return undefined;
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      document.getElementById('application-form')?.scrollIntoView({ block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [job, loading, location.pathname]);
 
   return (
     <main className="app-shell public-job-page min-h-screen px-4 py-8 sm:px-6 sm:py-12" data-theme={theme} style={{ '--brand-color': brandColor }}>
@@ -1086,7 +1165,7 @@ function ApplicationFormPage({ job, jobId, brandColor }) {
 
   if (submitted) {
     return (
-      <section id="application-form" className="scroll-mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-8 text-center">
+      <section id="application-form" className="public-application-success scroll-mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-8 text-center">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-2xl text-blue-600">✓</span>
         <h2 className="mt-4 text-xl font-bold text-slate-900">Application received</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">Thank you for applying to {job.title}. Your application has been sent for review.</p>
@@ -1655,57 +1734,64 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
 
   return (
     <div className="app-page page-panel space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Rankings</h2>
-          <p className="text-sm text-slate-500">Review and decide on the best-fit candidates</p>
+          <p className="page-header-eyebrow">Ranking workspace</p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Candidate Rankings</h2>
+          <p className="page-header-summary">AI-assisted benchmark against Senior Full Stack Engineer requirements and custom criteria.</p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <select value={jobId} onChange={(e) => {
-            setHasChosenJob(true);
-            setSelectedJobId(e.target.value);
-            setActiveDocumentType('');
-            setChatThreads([]);
-            setActiveConversationId('');
-            setChatMessages([]);
-            setLoadedChatConversationId('');
-          }} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-            {jobs.map((job) => (
-              <option key={job.job_id} value={job.job_id}>{job.title} · {job.job_id.slice(-4)}</option>
-            ))}
-          </select>
-          <input
-            type="search"
-            value={candidateQuery}
-            onChange={(event) => setCandidateQuery(event.target.value)}
-            placeholder="Search candidates"
-            aria-label="Search candidates"
-            className="h-10 min-w-44 rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm outline-none focus:border-blue-500"
-          />
-          <select value={filter} onChange={(e) => {
-            setFilter(e.target.value);
-            setActiveDocumentType('');
-          }} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-            <option value="all">All</option>
-            <option value="pending_decision">Pending</option>
-            <option value="shortlisted">Shortlisted</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          <select value={analysisFilter} onChange={(event) => setAnalysisFilter(event.target.value)} aria-label="Filter by AI analysis status" className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-            <option value="all">All analysis</option>
-            <option value="analyzed">Analyzed</option>
-            <option value="not_analyzed">Needs analysis</option>
-          </select>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button type="button" className="mini-panel-button is-primary h-10 shrink-0 rounded-lg px-4 text-xs font-semibold tracking-wide uppercase hover:brightness-95">
+            Export Shortlist
+          </button>
           <button
             type="button"
             onClick={rerankWithAI}
             disabled={reranking || loading || !jobId || ranking.length === 0}
-            className="h-10 w-[200px] shrink-0 overflow-hidden text-ellipsis whitespace-nowrap rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
+            className="mini-panel-button is-primary h-10 shrink-0 rounded-lg px-4 text-xs font-semibold tracking-wide uppercase hover:brightness-95 disabled:cursor-wait disabled:opacity-60"
           >
-            {reranking ? 'Analyzing candidates…' : 'Analyze with AI'}
+            {reranking ? 'Analyzing…' : 'Run AI Evaluation'}
           </button>
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <select value={jobId} onChange={(e) => {
+          setHasChosenJob(true);
+          setSelectedJobId(e.target.value);
+          setActiveDocumentType('');
+          setChatThreads([]);
+          setActiveConversationId('');
+          setChatMessages([]);
+          setLoadedChatConversationId('');
+        }} className="rounded-xl border border-slate-300/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400">
+          {jobs.map((job) => (
+            <option key={job.job_id} value={job.job_id}>{job.title} · {job.job_id.slice(-4)}</option>
+          ))}
+        </select>
+        <input
+          type="search"
+          value={candidateQuery}
+          onChange={(event) => setCandidateQuery(event.target.value)}
+          placeholder="Search candidates"
+          aria-label="Search candidates"
+          className="h-10 min-w-44 rounded-xl border border-slate-300/10 bg-slate-900/70 px-3 text-sm text-slate-100 outline-none placeholder:text-slate-400 focus:border-emerald-400"
+        />
+        <select value={filter} onChange={(e) => {
+          setFilter(e.target.value);
+          setActiveDocumentType('');
+        }} className="rounded-xl border border-slate-300/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400">
+          <option value="all">All</option>
+          <option value="pending_decision">Pending</option>
+          <option value="shortlisted">Shortlisted</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select value={analysisFilter} onChange={(event) => setAnalysisFilter(event.target.value)} aria-label="Filter by AI analysis status" className="rounded-xl border border-slate-300/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400">
+          <option value="all">All analysis</option>
+          <option value="analyzed">Analyzed</option>
+          <option value="not_analyzed">Needs analysis</option>
+        </select>
       </div>
 
       {loading && <p role="status" className="text-sm text-slate-500">Loading candidate rankings...</p>}
@@ -1800,7 +1886,7 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
                     </button>
                   ))}
                 </div>
-                {activeDocument?.url && <a href={activeDocument.url} target="_blank" rel="noreferrer" className="text-sm font-medium text-blue-700 hover:underline">Ku fur tab cusub ↗</a>}
+                {activeDocument?.url && <a href={resolveApiAssetUrl(activeDocument.url)} target="_blank" rel="noreferrer" className="text-sm font-medium text-blue-700 hover:underline">Ku fur tab cusub ↗</a>}
               </div>
               {activeDocument?.url ? (
                 <div className="ranking-document-viewer min-h-[480px] bg-slate-100">
@@ -1813,7 +1899,7 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
                       <span className="text-4xl" aria-hidden="true">📄</span>
                       <p className="text-sm font-semibold text-slate-800">{activeDocument.name}</p>
                       <p className="max-w-md text-sm text-slate-500">Nooca Word-ka browser-kan si toos ah uguma soo bandhigi karo. Dukumentiga ku fur tab cusub ama soo dejiso.</p>
-                      <a href={activeDocument.url} target="_blank" rel="noreferrer" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Fur dukumentiga</a>
+                      <a href={resolveApiAssetUrl(activeDocument.url)} target="_blank" rel="noreferrer" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Fur dukumentiga</a>
                     </div>
                   )}
                 </div>
@@ -1850,7 +1936,7 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
                     {activeCandidate.application_documents?.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {activeCandidate.application_documents.map((document) => (
-                          <a key={`${document.label}-${document.name}`} href={document.url} target="_blank" rel="noreferrer" className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">
+                          <a key={`${document.label}-${document.name}`} href={resolveApiAssetUrl(document.url)} target="_blank" rel="noreferrer" className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">
                             {document.label}: {document.name}
                           </a>
                         ))}

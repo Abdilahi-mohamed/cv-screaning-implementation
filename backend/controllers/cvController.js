@@ -8,6 +8,8 @@ const InterviewQuestion = require('../models/InterviewQuestion');
 const Ranking = require('../models/Ranking');
 const RecruitmentConversation = require('../models/RecruitmentConversation');
 const Job = require('../models/Job');
+const Company = require('../models/Company');
+const SystemSetting = require('../models/SystemSetting');
 const { getStore } = require('../data/store');
 const { computeJobSimilarity } = require('../services/embeddingService');
 const { extractTextFromFile } = require('../services/cvExtractionService');
@@ -72,6 +74,12 @@ const uploadApplication = async (req, res) => {
     if (!targetJobId || !candidateName || !candidateEmail) {
       return res.status(400).json({ message: 'Job ID, full name and email are required.' });
     }
+    if (!useMemory()) {
+      const settings = await SystemSetting.findOne({ key: 'platform' }).select('allow_public_applications');
+      if (settings?.allow_public_applications === false) {
+        return res.status(403).json({ message: 'Online applications are currently disabled by the system owner.' });
+      }
+    }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidateEmail)) {
       return res.status(400).json({ message: 'Please provide a valid email address.' });
@@ -88,6 +96,13 @@ const uploadApplication = async (req, res) => {
 
     if (!job) {
       return res.status(404).json({ message: 'Job not found.' });
+    }
+    if (job.status !== 'active') return res.status(404).json({ message: 'This job is no longer accepting applications.' });
+    if (job.company_id && !useMemory()) {
+      const company = await Company.findOne({ company_id: job.company_id }).select('status');
+      if (!company || company.status !== 'active') {
+        return res.status(404).json({ message: 'This company is not accepting applications.' });
+      }
     }
 
     const applicationFields = Array.isArray(job.application_fields) && job.application_fields.length

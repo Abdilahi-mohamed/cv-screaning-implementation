@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const Job = require('../models/Job');
+const Company = require('../models/Company');
+const SystemSetting = require('../models/SystemSetting');
 const { generateId } = require('../utils/helpers');
 const { getStore } = require('../data/store');
 
@@ -20,7 +22,6 @@ const createJob = async (req, res) => {
       education_requirements,
       other_requirements,
       rubric,
-      company_name,
       brand_color,
       application_fields,
     } = req.body;
@@ -42,14 +43,17 @@ const createJob = async (req, res) => {
 
     const jobId = generateId('job');
     const applicationLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/apply/${jobId}`;
+    const settings = useMemory() ? null : await SystemSetting.findOne({ key: 'platform' }).select('default_brand_color');
+    const defaultBrandColor = settings?.default_brand_color || '#2f6f9f';
 
     const jobRecord = {
       job_id: jobId,
+      company_id: req.user.company_id,
       title,
       description,
       responsibilities: responsibilities || '',
-      company_name: company_name || '',
-      brand_color: /^#[0-9a-f]{6}$/i.test(brand_color) ? brand_color : '#2563eb',
+      company_name: req.company.name,
+      brand_color: /^#[0-9a-f]{6}$/i.test(brand_color) ? brand_color : defaultBrandColor,
       application_fields: Array.isArray(application_fields) ? application_fields : [],
       required_skills: required_skills || [],
       required_qualifications: required_qualifications || [],
@@ -60,7 +64,7 @@ const createJob = async (req, res) => {
       rubric: safeRubric,
       status: 'active',
       created_at: new Date().toISOString(),
-      created_by: 'manager_001',
+      created_by: req.user.username,
     };
 
     if (useMemory()) {
@@ -97,7 +101,6 @@ const updateJob = async (req, res) => {
       education_requirements,
       other_requirements,
       rubric,
-      company_name,
       brand_color,
       application_fields,
     } = req.body;
@@ -112,8 +115,8 @@ const updateJob = async (req, res) => {
       education_requirements: education_requirements || [],
       other_requirements: other_requirements || [],
       rubric: rubric || job.rubric,
-      company_name: company_name || '',
-      brand_color: /^#[0-9a-f]{6}$/i.test(brand_color) ? brand_color : '#2563eb',
+      company_name: req.company.name,
+      brand_color: /^#[0-9a-f]{6}$/i.test(brand_color) ? brand_color : job.brand_color,
       application_fields: Array.isArray(application_fields) ? application_fields : [],
     });
 
@@ -127,10 +130,12 @@ const updateJob = async (req, res) => {
 const getJobs = async (req, res) => {
   try {
     if (useMemory()) {
-      return res.json(getStore().jobs.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+      return res.json(getStore().jobs
+        .filter((item) => item.company_id === req.user.company_id)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
     }
 
-    const jobs = await Job.find().sort({ created_at: -1 });
+    const jobs = await Job.find({ company_id: req.user.company_id }).sort({ created_at: -1 });
     return res.json(jobs);
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Unable to fetch jobs.' });
@@ -146,7 +151,44 @@ const getJobById = async (req, res) => {
       return res.status(404).json({ message: 'Job not found.' });
     }
 
-    return res.json(job);
+    if (job.company_id) {
+      const company = useMemory()
+        ? null
+        : await Company.findOne({ company_id: job.company_id }).select('status');
+      if (!useMemory() && (!company || company.status !== 'active')) {
+        return res.status(404).json({ message: 'Job not found.' });
+      }
+    }
+    if (req.user?.role === 'owner'
+      || (req.user?.role === 'hr'
+        && job.company_id === req.user.company_id
+        && req.user.permissions?.includes('jobs:manage'))) {
+      return res.json(job);
+    }
+    const {
+      job_id,
+      title,
+      description,
+      responsibilities,
+      image_url,
+      company_name,
+      brand_color,
+      brand_logo_url,
+      application_fields,
+      application_link,
+    } = job;
+    return res.json({
+      job_id,
+      title,
+      description,
+      responsibilities,
+      image_url,
+      company_name,
+      brand_color,
+      brand_logo_url,
+      application_fields,
+      application_link,
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Unable to fetch job.' });
   }

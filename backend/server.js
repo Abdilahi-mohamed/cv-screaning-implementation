@@ -2,8 +2,8 @@ require('dotenv').config();
 const net = require('net');
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const connectDB = require('./config/db');
+const { initializeOwner } = require('./services/authService');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { openRouterConfigured, openRouterModel } = require('./services/openRouterService');
 
@@ -84,11 +84,14 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+app.use('/api/documents', require('./routes/documentRoutes'));
 app.use('/api/jobs', require('./routes/jobRoutes'));
 app.use('/api/jobs', require('./routes/dashboardRoutes'));
 app.use('/api/cvs', require('./routes/cvRoutes'));
 app.use('/api/evaluations', require('./routes/evaluationRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/owner', require('./routes/ownerRoutes'));
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -104,7 +107,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.get('/uploads/:fileName', require('./controllers/documentController').serveJobImage);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -112,6 +115,11 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     await connectDB();
+    if (require('mongoose').connection.readyState === 1) {
+      await initializeOwner();
+    } else if (process.env.OWNER_USERNAME || process.env.OWNER_PASSWORD) {
+      console.error('System owner bootstrap was skipped because the database is unavailable.');
+    }
     const server = await listenOnPort(preferredPort);
     const startedPort = server.address().port;
     actualPort = startedPort;

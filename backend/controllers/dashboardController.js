@@ -9,11 +9,11 @@ const { createSignedDocumentUrl } = require('../services/documentService');
 
 const useMemory = () => mongoose.connection.readyState !== 1;
 
-const getCandidateDocuments = (req, candidate) => {
+const getCandidateDocuments = (candidate) => {
   const getDocument = (document) => document?.filename ? {
     name: document.originalName || document.filename,
     mime_type: document.mimeType || '',
-    url: createSignedDocumentUrl(req, document.filename),
+    url: createSignedDocumentUrl(document.filename),
     size: document.size || 0,
     uploaded_at: document.uploadedAt || null,
   } : null;
@@ -25,7 +25,7 @@ const getCandidateDocuments = (req, candidate) => {
   };
 };
 
-const getCandidateApplicationData = (req, candidate, fields) => ({
+const getCandidateApplicationData = (candidate, fields) => ({
   application_responses: Object.entries(candidate?.application_responses || {}).map(([id, value]) => ({
     label: fields.find((field) => field.id === id)?.label || id,
     value,
@@ -33,7 +33,7 @@ const getCandidateApplicationData = (req, candidate, fields) => ({
   application_documents: (candidate?.application_documents || []).map((item) => ({
     label: fields.find((field) => field.key === item.field_id)?.label || item.field_id,
     name: item.document?.originalName || item.original_name,
-    url: item.document?.filename ? createSignedDocumentUrl(req, item.document.filename) : '',
+    url: item.document?.filename ? createSignedDocumentUrl(item.document.filename) : '',
   })),
 });
 
@@ -159,8 +159,8 @@ const getRanking = async (req, res) => {
         feedback: evaluation?.feedback || '',
         notes: feedback?.manager_notes || '',
         details: evaluation?.details || null,
-        documents: getCandidateDocuments(req, candidate),
-        ...getCandidateApplicationData(req, candidate, applicationFields),
+        documents: getCandidateDocuments(candidate),
+        ...getCandidateApplicationData(candidate, applicationFields),
         matched_requirements: evaluation?.matched_requirements || [],
         missing_requirements: evaluation?.missing_requirements || [],
         questions: interview?.questions || [],

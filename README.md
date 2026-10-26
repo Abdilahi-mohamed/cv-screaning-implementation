@@ -34,7 +34,7 @@ If your local ports are already occupied, the backend will automatically retry o
 
 For OpenRouter-powered evaluation, candidate chat, and interview questions, set `OPENROUTER_API_KEY` in `backend/.env` and restart the backend. Optionally set `OPENROUTER_MODEL` (default: `openai/gpt-4o-mini`). The key stays server-side. Requests use OpenRouter's OpenAI-compatible chat completions API. Candidate chat history is saved by this application against its candidate and job. The Settings page reports whether the backend detected configuration; provider request failures are shown instead of silently switching providers.
 
-The Settings page offers three workspace themes: Obsidian + Emerald, Midnight + Violet, and Warm Ivory + Forest. The selected theme and desktop sidebar state are saved in browser local storage and apply across the dashboard and public job application pages.
+The Settings page offers three workspace themes: Obsidian + Emerald (the default), Midnight + Violet, and Warm Ivory + Forest. The selected theme and desktop sidebar state are saved in browser local storage and apply across the dashboard and public job application pages.
 
 ## Production-like setup
 
@@ -68,8 +68,22 @@ docker-compose up -d --build
 - POST /api/feedback
 - GET /api/jobs/:jobId/dashboard
 
-Use the **Job Link** page to create or edit a job, format its description, set required skills and qualifications, upload a company logo, and build the candidate application form. Public `/apply/:jobId` links show the company and job details first, followed by the saved application form on the same page; the apply button scrolls applicants to the form. The application UI uses a white and light-blue palette. The form supports required or optional questions, dropdowns, and document uploads. Applicants' CVs will be evaluated and added to Rankings automatically. Existing jobs created before form customization keep the default name, contact, CV, certificate, and KUR fields.
+Use the **Job Link** page to create or edit a job, format its description, set required skills and qualifications, customize the company's brand color, upload a company logo, and build the candidate application form. Public `/apply/:jobId` links show the company and job details first, followed by the saved application form on the same page; the Job Link's copied URL opens `/apply/:jobId/form` and scrolls directly to that job's saved form. The application UI uses a white and light-blue palette with the company's chosen brand color. The form supports required or optional questions, dropdowns, and document uploads. Applicants' CVs will be evaluated and added to Rankings automatically. Existing jobs created before form customization keep the default name, contact, CV, certificate, and KUR fields.
 
 The **Ranking Page** also supports HR batch CV upload and visibly coordinates requirement-based analysis and matching, ranking, and candidate-specific interview-question generation; it opens Results only after every step succeeds. Generated evaluations and interview questions are persisted against each job and candidate, so Results and Questions & Interviews can reload completed data without repeating analysis. HR can delete an applicant and their associated documents, evaluations, decisions, questions, and saved chats. Candidate-scoped chat history supports multiple saved conversations per job and applicant; suggested prompts and generated interview questions are saved in their chat thread, along with AI replies. Generated questions are presented as a document on Questions & Interviews, divided into Hard Questions and Interview Questions, with a downloadable copy for each candidate.
 
-The **Job Link** builder saves the public job description and application fields together. The `/apply/:jobId` page renders the saved fields as the candidate's actual form, and open public pages refresh when a saved job is updated in another tab or when the page becomes active again.
+The **Job Link** builder saves the public job description and application fields together. The `/apply/:jobId` page renders the saved fields as the candidate's actual form using the active workspace theme, and open public pages refresh when a saved job is updated in another tab or when the page becomes active again.
+
+## Owner and company workspaces
+
+Company administration and authentication require a reachable MongoDB database; the legacy in-memory fallback is not used for accounts or sessions.
+
+1. Copy `backend/.env.example` to `backend/.env`.
+2. Set `MONGODB_URI` to the database connection string and configure a unique `OWNER_USERNAME` plus an `OWNER_PASSWORD` of at least 12 characters.
+3. Start the backend. The owner account is created on first startup only; later changes to those environment variables do not overwrite the existing owner account.
+4. Open `/owner` and sign in with those owner credentials. Create a company and assign its HR username and initial password.
+5. HR users sign in at `/login` and are routed to their company's workspace.
+
+Owner and HR sessions use separate, HttpOnly cookies backed by revocable database sessions. Sessions expire after 12 hours; production cookies require HTTPS. HR APIs check company ownership and the assigned permission set on every protected request. Job and candidate documents are served only to an authorized HR user from the owning workspace; public job images remain available for job pages.
+
+The Owner Dashboard supports company creation and management, HR credential resets, account activation/suspension, permissions, system-wide activity/statistics, public application access, and the default job brand color. Deleting a company disables its HR account and revokes its sessions while retaining its historical recruitment records for audit purposes. If the database already contains unassigned legacy jobs, creating the first company assigns those jobs to its workspace.

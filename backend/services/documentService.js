@@ -28,10 +28,9 @@ const buildDocumentRecord = (file, kind) => {
   };
 };
 
-const createSignedDocumentUrl = (req, fileName) => {
+const createSignedDocumentUrl = (fileName) => {
   if (!fileName) return '';
-  const base = `${req.protocol}://${req.get('host')}`;
-  return `${base}/uploads/${encodeURIComponent(fileName)}`;
+  return `/api/documents/${encodeURIComponent(fileName)}`;
 };
 
 module.exports = {
