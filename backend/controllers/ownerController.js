@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const Company = require('../models/Company');
 const CV = require('../models/CV');
@@ -6,12 +7,12 @@ const Session = require('../models/Session');
 const SystemSetting = require('../models/SystemSetting');
 const User = require('../models/User');
 const { hashPassword } = require('../services/authService');
-const { generateId } = require('../utils/helpers');
 
 const PERMISSIONS = ['jobs:manage', 'candidates:manage', 'settings:manage'];
 const databaseUnavailable = (res) => res.status(503).json({ message: 'Owner administration requires the configured database.' });
 const validUsername = (username) => /^[a-z0-9][a-z0-9._-]{2,39}$/.test(username);
 const validPassword = (password) => typeof password === 'string' && password.length >= 12 && password.length <= 256;
+const validEmail = (email) => !email || (email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
 
 const getDashboard = async (req, res, next) => {
   try {
@@ -119,18 +120,21 @@ const createCompany = async (req, res, next) => {
     if (mongoose.connection.readyState !== 1) return databaseUnavailable(res);
     const name = String(req.body?.name || '').trim();
     const username = String(req.body?.hr_username || '').trim().toLowerCase();
+    const hrName = String(req.body?.hr_name || '').trim();
+    const email = String(req.body?.hr_email || '').trim().toLowerCase();
     const password = req.body?.hr_password;
     if (name.length < 2 || name.length > 120) return res.status(400).json({ message: 'Company name must be between 2 and 120 characters.' });
     if (!validUsername(username)) return res.status(400).json({ message: 'HR username must be 3–40 characters using letters, numbers, dots, underscores, or hyphens.' });
+    if (hrName.length > 100 || !validEmail(email)) return res.status(400).json({ message: 'Enter a valid HR name and email address.' });
     if (!validPassword(password)) return res.status(400).json({ message: 'HR password must be between 12 and 256 characters.' });
     if (await User.exists({ username })) return res.status(409).json({ message: 'That username is already assigned to another account.' });
 
-    const company = await Company.create({ company_id: generateId('company'), name });
+    const company = await Company.create({ company_id: `company_${crypto.randomUUID()}`, name });
     try {
       const user = await User.create({
         username,
-        name: String(req.body?.hr_name || '').trim(),
-        email: String(req.body?.hr_email || '').trim().toLowerCase(),
+        name: hrName,
+        email,
         role: 'hr',
         company_id: company.company_id,
         password_hash: await hashPassword(password),
@@ -202,8 +206,16 @@ const updateHrUser = async (req, res, next) => {
       if (existing) return res.status(409).json({ message: 'That username is already assigned to another account.' });
       user.username = username;
     }
-    if (req.body?.name !== undefined) user.name = String(req.body.name).trim();
-    if (req.body?.email !== undefined) user.email = String(req.body.email).trim().toLowerCase();
+    if (req.body?.name !== undefined) {
+      const name = String(req.body.name).trim();
+      if (name.length > 100) return res.status(400).json({ message: 'HR name must be 100 characters or fewer.' });
+      user.name = name;
+    }
+    if (req.body?.email !== undefined) {
+      const email = String(req.body.email).trim().toLowerCase();
+      if (!validEmail(email)) return res.status(400).json({ message: 'Enter a valid HR email address.' });
+      user.email = email;
+    }
     if (req.body?.active !== undefined) {
       if (typeof req.body.active !== 'boolean') return res.status(400).json({ message: 'HR account access must be active or suspended.' });
       user.active = req.body.active;

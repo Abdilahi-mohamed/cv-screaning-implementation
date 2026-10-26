@@ -161,6 +161,16 @@ const requirePermission = (permission) => (req, res, next) => {
   return next();
 };
 
+const requireAnyPermission = (...permissions) => (req, res, next) => {
+  if (!req.user || req.user.role !== 'hr') {
+    return res.status(403).json({ message: 'HR access is required for this company resource.' });
+  }
+  if (!permissions.some((permission) => req.user.permissions?.includes(permission))) {
+    return res.status(403).json({ message: 'Your account does not have permission to access this resource.' });
+  }
+  return next();
+};
+
 const requireHR = requireRole('hr');
 const requireOwner = requireRole('owner');
 
@@ -171,6 +181,7 @@ module.exports = {
   requireHR,
   requireJobAccess,
   requireOwner,
+  requireAnyPermission,
   requirePermission,
   requireTrustedOrigin,
 };

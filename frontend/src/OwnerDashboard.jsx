@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
   Activity,
@@ -105,7 +105,7 @@ function OwnerWorkspace({ user, onLogout }) {
   const [query, setQuery] = useState('');
   const [modalCompany, setModalCompany] = useState(null);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setError('');
     try {
       const [dashboardResponse, companiesResponse, settingsResponse] = await Promise.all([
@@ -121,9 +121,9 @@ function OwnerWorkspace({ user, onLogout }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const activeCompanies = useMemo(() => companies.filter((company) => company.status !== 'deleted'), [companies]);
   const visibleCompanies = useMemo(() => activeCompanies.filter((company) =>
@@ -206,7 +206,9 @@ function OwnerWorkspace({ user, onLogout }) {
       setModalCompany(null);
       await refresh();
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to save this company account.');
+      const message = requestError.response?.data?.message || 'Unable to save this company account.';
+      setError(message);
+      throw new Error(message);
     }
   };
 

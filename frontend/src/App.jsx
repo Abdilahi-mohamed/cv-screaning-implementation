@@ -7,6 +7,20 @@ import OwnerDashboard from './OwnerDashboard.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 axios.defaults.withCredentials = true;
+axios.interceptors.response.use(undefined, (error) => {
+  if (error.response?.status === 401) {
+    const requestUrl = String(error.config?.url || '');
+    const isLoginRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/me');
+    if (!isLoginRequest && window.location.pathname.startsWith('/owner') && requestUrl.includes('/owner/')) {
+      window.location.replace('/owner');
+    } else if (!isLoginRequest && !window.location.pathname.startsWith('/owner')
+      && !window.location.pathname.startsWith('/apply')
+      && window.location.pathname !== '/login') {
+      window.location.replace('/login');
+    }
+  }
+  return Promise.reject(error);
+});
 const resolveApiAssetUrl = (url) => {
   if (!url || /^https?:\/\//i.test(url)) return url;
   const base = API_URL.replace(/\/+$/, '');

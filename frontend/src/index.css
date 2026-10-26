@@ -623,7 +623,6 @@ button { cursor: pointer; }
 }
 
 .hr-header-date {
-  display: inline-flex;
   align-items: center;
   gap: 7px;
   color: #606a6c;

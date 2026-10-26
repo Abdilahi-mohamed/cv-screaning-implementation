@@ -84,6 +84,8 @@ Company administration and authentication require a reachable MongoDB database; 
 4. Open `/owner` and sign in with those owner credentials. Create a company and assign its HR username and initial password.
 5. HR users sign in at `/login` and are routed to their company's workspace.
 
+For `docker-compose`, set `MONGODB_URI=mongodb://mongodb:27017/cvevolution` in `backend/.env` so the backend uses the Compose MongoDB service rather than its own container's localhost.
+
 Owner and HR sessions use separate, HttpOnly cookies backed by revocable database sessions. Sessions expire after 12 hours; production cookies require HTTPS. HR APIs check company ownership and the assigned permission set on every protected request. Job and candidate documents are served only to an authorized HR user from the owning workspace; public job images remain available for job pages.
 
 The Owner Dashboard supports company creation and management, HR credential resets, account activation/suspension, permissions, system-wide activity/statistics, public application access, and the default job brand color. Deleting a company disables its HR account and revokes its sessions while retaining its historical recruitment records for audit purposes. If the database already contains unassigned legacy jobs, creating the first company assigns those jobs to its workspace.

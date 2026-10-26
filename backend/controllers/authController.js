@@ -31,6 +31,9 @@ const login = (role) => async (req, res, next) => {
     const username = String(req.body?.username || '').trim().toLowerCase();
     const password = String(req.body?.password || '');
     if (!username || !password) return res.status(400).json({ message: 'Username and password are required.' });
+    if (username.length > 40 || password.length > 256) {
+      return res.status(400).json({ message: 'Username or password exceeds the allowed length.' });
+    }
 
     const user = await User.findOne({ username, role }).select('+password_hash');
     const passwordMatches = user && await verifyPassword(password, user.password_hash);
