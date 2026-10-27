@@ -79,10 +79,10 @@ The **Job Link** builder saves the public job description and application fields
 Company administration and authentication require a reachable MongoDB database; the legacy in-memory fallback is not used for accounts or sessions.
 
 1. Copy `backend/.env.example` to `backend/.env`.
-2. Set `MONGODB_URI` to the database connection string and configure a unique `OWNER_USERNAME` plus an `OWNER_PASSWORD` of at least 12 characters.
-3. Start the backend. The owner account is created on first startup only; later changes to those environment variables do not overwrite the existing owner account.
-4. Open `/owner` and sign in with those owner credentials. Create a company and assign its HR username and initial password.
-5. HR users sign in at `/login` and are routed to their company's workspace.
+2. Set `MONGODB_URI` to the database connection string. Optionally configure `OWNER_USERNAME` and an `OWNER_PASSWORD` of at least 12 characters to create the owner account on startup.
+3. If owner credentials are not configured, open `/owner` and use **First time here? Create the owner account**. This one-time setup is disabled as soon as an owner account exists.
+4. Open `/login` and sign in with either the owner credentials or a company HR username/password. Owners are routed to `/owner`; HR users are routed to their own company dashboard.
+5. The owner can create company HR accounts from the **HR users** section of the owner dashboard. Each HR account is assigned to its own company workspace.
 
 For `docker-compose`, set `MONGODB_URI=mongodb://mongodb:27017/cvevolution` in `backend/.env` so the backend uses the Compose MongoDB service rather than its own container's localhost.
 

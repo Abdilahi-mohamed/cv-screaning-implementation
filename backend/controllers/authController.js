@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Company = require('../models/Company');
 const Session = require('../models/Session');
 const User = require('../models/User');
-const { createSession, hashSessionToken, verifyPassword } = require('../services/authService');
+const { createSession, hashPassword, hashSessionToken, verifyPassword } = require('../services/authService');
 const { readCookie } = require('../middleware/authMiddleware');
 
 const cookieOptions = (maxAge) => [
@@ -15,12 +15,19 @@ const cookieOptions = (maxAge) => [
 
 const cookieName = (role) => role === 'owner' ? 'cv_owner_session' : 'cv_hr_session';
 
+const appendCookie = (res, cookie) => {
+  const existing = res.getHeader('Set-Cookie');
+  res.setHeader('Set-Cookie', existing
+    ? [...(Array.isArray(existing) ? existing : [existing]), cookie]
+    : cookie);
+};
+
 const setSessionCookie = (res, token, expiresAt, role) => {
-  res.setHeader('Set-Cookie', `${cookieName(role)}=${encodeURIComponent(token)}; ${cookieOptions(expiresAt.getTime() - Date.now())}`);
+  appendCookie(res, `${cookieName(role)}=${encodeURIComponent(token)}; ${cookieOptions(expiresAt.getTime() - Date.now())}`);
 };
 
 const clearSessionCookie = (res, role) => {
-  res.setHeader('Set-Cookie', `${cookieName(role)}=; ${cookieOptions(0)}`);
+  appendCookie(res, `${cookieName(role)}=; ${cookieOptions(0)}`);
 };
 
 const login = (role) => async (req, res, next) => {
@@ -35,13 +42,15 @@ const login = (role) => async (req, res, next) => {
       return res.status(400).json({ message: 'Username or password exceeds the allowed length.' });
     }
 
-    const user = await User.findOne({ username, role }).select('+password_hash');
+    const userQuery = { username };
+    if (role) userQuery.role = role;
+    const user = await User.findOne(userQuery).select('+password_hash');
     const passwordMatches = user && await verifyPassword(password, user.password_hash);
     if (!passwordMatches) return res.status(401).json({ message: 'The username or password is incorrect.' });
     if (!user.active) return res.status(403).json({ message: 'This account is inactive. Contact the system owner.' });
 
     let company = null;
-    if (role === 'hr') {
+    if (user.role === 'hr') {
       company = await Company.findOne({ company_id: user.company_id });
       if (!company || company.status !== 'active') {
         return res.status(403).json({ message: 'This company account is not active. Contact the system owner.' });
@@ -53,7 +62,8 @@ const login = (role) => async (req, res, next) => {
     user.last_login_at = new Date();
     user.last_active_at = new Date();
     await user.save();
-    setSessionCookie(res, token, expiresAt, role);
+    setSessionCookie(res, token, expiresAt, user.role);
+    clearSessionCookie(res, user.role === 'owner' ? 'hr' : 'owner');
     return res.json({
       user: {
         username: user.username,
@@ -113,8 +123,72 @@ const logout = (role) => async (req, res, next) => {
       await Session.deleteOne({ token_hash: hashSessionToken(token) });
     }
     clearSessionCookie(res, role);
+    clearSessionCookie(res, role === 'owner' ? 'hr' : 'owner');
     return res.json({ logged_out: true });
   } catch (error) {
+    return next(error);
+  }
+};
+
+const ownerSetupStatus = async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'Owner setup requires the configured database.' });
+    }
+    return res.json({ setup_available: !(await User.exists({ role: 'owner' })) });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const setupOwner = async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'Owner setup requires the configured database.' });
+    }
+
+    const username = typeof req.body?.username === 'string' ? req.body.username.trim().toLowerCase() : '';
+    const password = req.body?.password;
+    if (!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)) {
+      return res.status(400).json({ message: 'Owner username must be 3–40 characters using letters, numbers, dots, underscores, or hyphens.' });
+    }
+    if (typeof password !== 'string' || password.length < 12 || password.length > 256) {
+      return res.status(400).json({ message: 'Owner password must be between 12 and 256 characters.' });
+    }
+
+    await User.init();
+    if (await User.exists({ role: 'owner' })) {
+      return res.status(409).json({ message: 'The system owner account has already been created. Sign in instead.' });
+    }
+
+    const user = await User.create({
+      username,
+      name: 'System owner',
+      role: 'owner',
+      password_hash: await hashPassword(password),
+      permissions: ['system:manage'],
+    });
+    const { token, expiresAt } = await createSession(user);
+    user.last_login_at = new Date();
+    user.last_active_at = new Date();
+    await user.save();
+    setSessionCookie(res, token, expiresAt, 'owner');
+    clearSessionCookie(res, 'hr');
+    return res.status(201).json({
+      user: {
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        company_id: null,
+        company_name: '',
+        permissions: user.permissions,
+      },
+      expires_at: expiresAt,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: 'The owner account or username is already in use. Check the username and try again.' });
+    }
     return next(error);
   }
 };
@@ -122,8 +196,9 @@ const logout = (role) => async (req, res, next) => {
 module.exports = {
   currentOwner: currentUser('owner'),
   currentHR: currentUser('hr'),
-  loginOwner: login('owner'),
-  loginHR: login('hr'),
+  loginAny: login(),
   logoutHR: logout('hr'),
   logoutOwner: logout('owner'),
+  ownerSetupStatus,
+  setupOwner,
 };

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { Navigate } from 'react-router-dom';
 import {
   Activity,
   BriefcaseBusiness,
@@ -8,7 +9,6 @@ import {
   ChevronRight,
   CircleAlert,
   LayoutDashboard,
-  LockKeyhole,
   LogOut,
   Plus,
   Search,
@@ -48,49 +48,8 @@ function OwnerDashboard() {
   }, []);
 
   if (checkingSession) return <div className="owner-loading" role="status">Checking owner session…</div>;
-  if (!user) return <OwnerLogin initialError={sessionError} onLogin={setUser} />;
+  if (!user) return <Navigate to="/login" replace state={{ from: '/owner', error: sessionError }} />;
   return <OwnerWorkspace user={user} onLogout={() => setUser(null)} />;
-}
-
-function OwnerLogin({ initialError, onLogin }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(initialError);
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError('');
-    setSubmitting(true);
-    try {
-      const response = await axios.post(`${API_URL}/owner/auth/login`, { username: username.trim(), password }, { withCredentials: true });
-      onLogin(response.data.user);
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to sign in. Check your connection and try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <main className="auth-page owner-auth-page">
-      <section className="auth-card" aria-labelledby="owner-login-title">
-        <div className="auth-mark"><ShieldCheck size={21} aria-hidden="true" /></div>
-        <p className="auth-eyebrow">System administration</p>
-        <h1 id="owner-login-title">Owner dashboard</h1>
-        <p className="auth-description">Sign in with the system owner account. This access is separate from company HR accounts.</p>
-        <form onSubmit={handleSubmit} className="auth-form">
-          <label htmlFor="owner-username">Owner username</label>
-          <input id="owner-username" name="username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} required />
-          <label htmlFor="owner-password">Password</label>
-          <input id="owner-password" name="password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-          {error && <p className="auth-error" role="alert">{error}</p>}
-          <button type="submit" disabled={submitting}>{submitting ? 'Verifying…' : 'Sign in as system owner'}</button>
-        </form>
-        <p className="auth-footnote"><LockKeyhole size={14} aria-hidden="true" /> Owner credentials are configured by the server administrator</p>
-      </section>
-    </main>
-  );
 }
 
 function OwnerWorkspace({ user, onLogout }) {
@@ -201,7 +160,7 @@ function OwnerWorkspace({ user, onLogout }) {
           hr_name: payload.hr_user.name,
           hr_email: payload.hr_user.email,
         }, { withCredentials: true });
-        setNotice('Company workspace and HR login created.');
+        setNotice('Company workspace and HR account created.');
       }
       setModalCompany(null);
       await refresh();
@@ -259,6 +218,7 @@ function OwnerWorkspace({ user, onLogout }) {
           <div className="owner-page-heading">
             <div><p className="owner-eyebrow">SYSTEM ADMINISTRATION</p><h1>{titles[section][0]}</h1><p>{titles[section][1]}</p></div>
             {(section === 'companies' || section === 'dashboard') && <button className="owner-primary-button" type="button" onClick={() => setModalCompany({})}><Plus size={17} /> Create company</button>}
+            {section === 'users' && <button className="owner-primary-button" type="button" onClick={() => setModalCompany({ createHrUser: true })}><Plus size={17} /> Create HR user</button>}
           </div>
           {error && <div className="owner-alert owner-alert-error" role="alert"><CircleAlert size={17} />{error}<button type="button" aria-label="Dismiss error" onClick={() => setError('')}><X size={16} /></button></div>}
           {notice && <div className="owner-alert owner-alert-success" role="status"><Check size={17} />{notice}<button type="button" aria-label="Dismiss notification" onClick={() => setNotice('')}><X size={16} /></button></div>}
@@ -275,7 +235,7 @@ function OwnerWorkspace({ user, onLogout }) {
           )}
         </div>
       </main>
-      {modalCompany && <CompanyModal company={modalCompany.company_id ? modalCompany : null} onClose={() => setModalCompany(null)} onSave={saveCompany} />}
+      {modalCompany && <CompanyModal company={modalCompany.company_id ? modalCompany : null} createHrUser={modalCompany.createHrUser} onClose={() => setModalCompany(null)} onSave={saveCompany} />}
     </div>
   );
 }
@@ -396,12 +356,13 @@ function SystemSettingsForm({ settings, onChange, onSave, saving }) {
   );
 }
 
-function CompanyModal({ company, onClose, onSave }) {
+function CompanyModal({ company, createHrUser = false, onClose, onSave }) {
   const [name, setName] = useState(company?.name || '');
   const [hrUsername, setHrUsername] = useState(company?.hr_user?.username || '');
   const [hrName, setHrName] = useState(company?.hr_user?.name || '');
   const [hrEmail, setHrEmail] = useState(company?.hr_user?.email || '');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [active, setActive] = useState(company?.hr_user?.active ?? true);
   const [permissions, setPermissions] = useState(company?.hr_user?.permissions || PERMISSION_OPTIONS.map((item) => item.value));
   const [error, setError] = useState('');
@@ -413,6 +374,7 @@ function CompanyModal({ company, onClose, onSave }) {
     if (name.trim().length < 2) { setError('Enter a company name with at least two characters.'); return; }
     if (!/^[a-z0-9][a-z0-9._-]{2,39}$/i.test(hrUsername.trim())) { setError('HR username must be 3–40 letters, numbers, dots, underscores, or hyphens.'); return; }
     if ((!editing || password) && password.length < 12) { setError('Use a password with at least 12 characters.'); return; }
+    if (!editing && password !== confirmPassword) { setError('The password and confirmation do not match.'); return; }
     setSaving(true);
     setError('');
     try {
@@ -437,18 +399,19 @@ function CompanyModal({ company, onClose, onSave }) {
   return (
     <div className="owner-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section className="owner-modal" role="dialog" aria-modal="true" aria-labelledby="company-modal-title">
-        <div className="owner-modal-heading"><div><p className="owner-eyebrow">{editing ? 'COMPANY ADMINISTRATION' : 'NEW WORKSPACE'}</p><h2 id="company-modal-title">{editing ? 'Manage company account' : 'Create company workspace'}</h2><p>{editing ? 'Update the workspace, HR credentials, or granted access.' : 'A separate dashboard and HR account will be provisioned.'}</p></div><button type="button" className="owner-icon-button" aria-label="Close" onClick={onClose}><X size={19} /></button></div>
+        <div className="owner-modal-heading"><div><p className="owner-eyebrow">{editing ? 'COMPANY ADMINISTRATION' : createHrUser ? 'NEW HR ACCOUNT' : 'NEW WORKSPACE'}</p><h2 id="company-modal-title">{editing ? 'Manage company account' : createHrUser ? 'Create HR user' : 'Create company workspace'}</h2><p>{editing ? 'Update the workspace, HR credentials, or granted access.' : 'Enter a company name and assign its HR username and password. The HR account is scoped to this company workspace.'}</p></div><button type="button" className="owner-icon-button" aria-label="Close" onClick={onClose}><X size={19} /></button></div>
         <form className="owner-company-form" onSubmit={handleSubmit}>
           <label>Company name<input value={name} onChange={(event) => setName(event.target.value)} required minLength={2} maxLength={120} /></label>
-          <div className="owner-form-section-title"><Users size={16} /> HR account credentials</div>
+          <div className="owner-form-section-title"><Users size={16} /> HR user account</div>
+          <label>HR full name<input value={hrName} onChange={(event) => setHrName(event.target.value)} required autoComplete="name" /></label>
           <label>HR username<input value={hrUsername} onChange={(event) => setHrUsername(event.target.value)} required autoComplete="off" /></label>
-          <label>HR user's name<input value={hrName} onChange={(event) => setHrName(event.target.value)} autoComplete="name" /></label>
-          <label>HR email<input type="email" value={hrEmail} onChange={(event) => setHrEmail(event.target.value)} autoComplete="email" /></label>
-          <label>{editing ? 'Reset HR password (optional)' : 'Initial HR password'}<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required={!editing} minLength={12} maxLength={256} autoComplete="new-password" placeholder={editing ? 'Leave blank to keep current password' : 'At least 12 characters'} /></label>
+          <label>{editing ? 'Reset HR password (optional)' : 'HR password'}<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required={!editing} minLength={12} maxLength={256} autoComplete="new-password" placeholder={editing ? 'Leave blank to keep current password' : 'At least 12 characters'} /></label>
+          {!editing && <label>Confirm password<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={256} autoComplete="new-password" /></label>}
+          {editing && <label>HR email<input type="email" value={hrEmail} onChange={(event) => setHrEmail(event.target.value)} autoComplete="email" /></label>}
           {editing && <label className="owner-access-toggle"><span>HR account access</span><select value={active ? 'active' : 'suspended'} onChange={(event) => setActive(event.target.value === 'active')}><option value="active">Active</option><option value="suspended">Suspended</option></select></label>}
           <fieldset className="owner-permissions"><legend>HR permissions</legend>{PERMISSION_OPTIONS.map((permission) => <label key={permission.value}><input type="checkbox" checked={permissions.includes(permission.value)} onChange={(event) => setPermissions((current) => event.target.checked ? [...current, permission.value] : current.filter((value) => value !== permission.value))} /><span>{permission.label}</span></label>)}</fieldset>
           {error && <p className="auth-error" role="alert">{error}</p>}
-          <div className="owner-modal-actions"><button type="button" className="owner-secondary-button" onClick={onClose}>Cancel</button><button type="submit" className="owner-primary-button" disabled={saving}>{saving ? 'Saving…' : editing ? 'Save account changes' : 'Create company account'}</button></div>
+          <div className="owner-modal-actions"><button type="button" className="owner-secondary-button" onClick={onClose}>Cancel</button><button type="submit" className="owner-primary-button" disabled={saving}>{saving ? 'Saving…' : editing ? 'Save account changes' : createHrUser ? 'Create HR user' : 'Create company account'}</button></div>
         </form>
       </section>
     </div>

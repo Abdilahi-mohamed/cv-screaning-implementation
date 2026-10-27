@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Archive, BriefcaseBusiness, CalendarDays, ClipboardCheck, LayoutDashboard, Link2, Settings as SettingsIcon, Users } from 'lucide-react';
-import HRLoginPage from './HRLoginPage.jsx';
+import LoginPage from './LoginPage.jsx';
 import OwnerDashboard from './OwnerDashboard.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -12,7 +12,7 @@ axios.interceptors.response.use(undefined, (error) => {
     const requestUrl = String(error.config?.url || '');
     const isLoginRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/me');
     if (!isLoginRequest && window.location.pathname.startsWith('/owner') && requestUrl.includes('/owner/')) {
-      window.location.replace('/owner');
+      window.location.replace('/login');
     } else if (!isLoginRequest && !window.location.pathname.startsWith('/owner')
       && !window.location.pathname.startsWith('/apply')
       && window.location.pathname !== '/login') {
@@ -145,7 +145,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<HRLoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/owner/*" element={<OwnerDashboard />} />
         <Route path="/apply/:jobId" element={<PublicJobPage theme={theme} />} />
         <Route path="/apply/:jobId/form" element={<PublicJobPage theme={theme} />} />

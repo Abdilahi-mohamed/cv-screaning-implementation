@@ -1699,6 +1699,24 @@ button { cursor: pointer; }
   opacity: 0.7;
 }
 
+.auth-card .auth-mode-toggle {
+  display: block;
+  width: 100%;
+  min-height: auto;
+  margin-top: 15px;
+  border: 0;
+  background: transparent;
+  color: #2f6f9f;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.auth-card .auth-mode-toggle:hover {
+  background: transparent;
+  color: #245c87;
+  text-decoration: underline;
+}
+
 .auth-error {
   margin: 3px 0;
   color: #a84d41;
@@ -1903,4 +1921,254 @@ button { cursor: pointer; }
   .owner-activity-row time {
     margin-left: 46px;
   }
+}
+
+.app-shell:not(.public-job-page) {
+  --app-bg: #f5f2ea;
+  --app-surface: #fffefa;
+  --app-panel: #fffefa;
+  --app-input: #ffffff;
+  --app-border: #ded9cf;
+  --app-text: #252c2f;
+  --app-text-soft: #626e72;
+  --app-text-muted: #7c8584;
+  --app-accent: #805536;
+  --app-accent-strong: #68432e;
+  --app-accent-soft: #e9ddd1;
+  --app-accent-tint: #f4ece4;
+  --app-success: #79a65e;
+  --app-warning: #c9933c;
+  --app-error: #b96355;
+  background: linear-gradient(180deg, #f8f6f0 0%, #f3f0e8 100%);
+}
+
+.app-shell:not(.public-job-page) .app-header-main,
+.app-shell:not(.public-job-page) .app-top-nav {
+  border-color: #ded9cf;
+  background: #fbfaf6;
+}
+
+.app-shell:not(.public-job-page) .app-logo {
+  border-color: rgba(128, 85, 54, 0.16);
+  background: linear-gradient(145deg, #f0e6dc, #e9ddd1);
+  color: #805536;
+}
+
+.app-shell:not(.public-job-page) .app-top-nav-link[aria-current='page'],
+.app-shell:not(.public-job-page) .app-top-nav-link.active {
+  border-bottom-color: #805536;
+  background: #e9ddd1;
+  color: #68432e !important;
+}
+
+.app-shell:not(.public-job-page) .hr-workspace-layout,
+.app-shell:not(.public-job-page) .hr-sidebar {
+  background: #f5f2ea;
+}
+
+.app-shell:not(.public-job-page) .hr-sidebar {
+  border-color: #ded9cf;
+}
+
+.app-shell:not(.public-job-page) .hr-sidebar-link {
+  color: #596569;
+}
+
+.app-shell:not(.public-job-page) .hr-sidebar-link:hover,
+.app-shell:not(.public-job-page) .hr-sidebar-link.is-active,
+.app-shell:not(.public-job-page) .hr-sidebar-link[aria-current='page'] {
+  background: #e9ddd1;
+  color: #68432e;
+}
+
+.app-shell:not(.public-job-page) .hr-sidebar-company {
+  border-color: #ded9cf;
+}
+
+.app-shell:not(.public-job-page) .hr-sidebar-company-mark {
+  background: #e1eeeb;
+  color: #438b83;
+}
+
+.app-shell:not(.public-job-page) .hr-sidebar-company strong {
+  color: #252c2f;
+}
+
+.app-shell:not(.public-job-page) .hr-sidebar-company small,
+.app-shell:not(.public-job-page) .hr-header-date {
+  color: #737d7e;
+}
+
+.app-shell:not(.public-job-page) .hr-logout-button {
+  border-color: #d8d3c8;
+  background: #fffefa;
+  color: #485458;
+}
+
+.app-shell:not(.public-job-page) .hr-logout-button:hover {
+  border-color: #34779e;
+  color: #285f80;
+}
+
+.app-shell:not(.public-job-page) .app-layout,
+.app-shell:not(.public-job-page) .app-main {
+  color: #252c2f;
+}
+
+.app-shell:not(.public-job-page) .page-panel,
+.app-shell:not(.public-job-page) .metric-card,
+.app-shell:not(.public-job-page) .candidate-card,
+.app-shell:not(.public-job-page) .ranking-sidebar,
+.app-shell:not(.public-job-page) .ranking-document-panel {
+  border-color: #ded9cf;
+  background: #fffefa;
+  box-shadow: 0 8px 22px rgba(48, 55, 50, 0.055);
+}
+
+.app-shell:not(.public-job-page) .dashboard-page .metric-card {
+  min-height: 145px;
+  border-color: #ded9cf;
+  background: #fffefa;
+}
+
+.app-shell:not(.public-job-page) .dashboard-page .metric-card > div:first-child {
+  border-color: #dce7ed;
+  background: #f0e6dc;
+  color: #805536;
+}
+
+.app-shell:not(.public-job-page) .dashboard-page .metric-card .text-white {
+  color: #252c2f !important;
+}
+
+.app-shell:not(.public-job-page) .dashboard-page select {
+  border-color: #d8d3c8;
+  background: #fffefa;
+  color: #303a3e;
+  box-shadow: none;
+}
+
+.app-shell:not(.public-job-page) .dashboard-primary-action,
+.app-shell:not(.public-job-page) .page-panel button:not(.mini-panel-button),
+.app-shell:not(.public-job-page) .ranking-document-panel button:not(.ranking-document-button) {
+  border-color: rgba(128, 85, 54, 0.2);
+  background: linear-gradient(135deg, #805536 0%, #a87952 100%);
+  box-shadow: 0 5px 13px rgba(128, 85, 54, 0.17);
+}
+
+.app-shell:not(.public-job-page) .mini-panel-button {
+  border-color: #e3d1c0;
+  background: #f4ece4;
+  color: #805536 !important;
+}
+
+.app-shell:not(.public-job-page) .mini-panel-button.is-primary {
+  background: linear-gradient(135deg, #805536 0%, #a87952 100%);
+  color: #ffffff !important;
+}
+
+.app-shell:not(.public-job-page) .app-page input:not([type='range']):not([type='checkbox']):not([type='file']),
+.app-shell:not(.public-job-page) .app-page select,
+.app-shell:not(.public-job-page) .app-page textarea,
+.app-shell:not(.public-job-page) input,
+.app-shell:not(.public-job-page) select,
+.app-shell:not(.public-job-page) textarea {
+  border-color: #d8d3c8;
+  background-color: #ffffff;
+  color: #303a3e;
+  box-shadow: none;
+}
+
+.app-shell:not(.public-job-page) .app-page input:focus,
+.app-shell:not(.public-job-page) .app-page select:focus,
+.app-shell:not(.public-job-page) .app-page textarea:focus {
+  border-color: #b89577;
+  box-shadow: 0 0 0 3px rgba(128, 85, 54, 0.14);
+}
+
+.app-shell:not(.public-job-page) .app-page thead th {
+  background: #eeebe3;
+  color: #626e72 !important;
+}
+
+.app-shell:not(.public-job-page) .app-page tbody tr {
+  background: #fffefa;
+}
+
+.app-shell:not(.public-job-page) .app-page tbody tr:hover {
+  background: #f7f5ef;
+}
+
+.app-shell:not(.public-job-page) .ranking-candidate {
+  border-color: #e2ded5;
+  background: #fbfaf6;
+}
+
+.app-shell:not(.public-job-page) .ranking-candidate[aria-current='true'] {
+  border-color: #c9ad93;
+  background: #f1e7dd;
+}
+
+.app-shell:not(.public-job-page) .ranking-document-button[aria-pressed='true'] {
+  border-color: #c9ad93;
+  background: #e9ddd1;
+  color: #68432e;
+}
+
+.app-shell:not(.public-job-page) .ranking-document-viewer {
+  background: #f3f0e8;
+}
+
+.app-shell:not(.public-job-page) [class*='bg-slate-100'],
+.app-shell:not(.public-job-page) [class*='bg-slate-200'],
+.app-shell:not(.public-job-page) [class*='bg-gray-100'] {
+  background-color: #eeebe3 !important;
+}
+
+.app-shell:not(.public-job-page) [class*='text-white'] {
+  color: #ffffff;
+}
+
+.app-shell:not(.public-job-page) .dashboard-page .metric-card [class*='text-white'] {
+  color: #252c2f !important;
+}
+
+.app-shell:not(.public-job-page) .dashboard-page h2.text-white {
+  color: #2b2723 !important;
+}
+
+.app-shell:not(.public-job-page) [class*='text-blue-'] {
+  color: #805536 !important;
+}
+
+.app-shell:not(.public-job-page) [class*='bg-blue-50'],
+.app-shell:not(.public-job-page) [class*='bg-blue-100'],
+.app-shell:not(.public-job-page) [class*='bg-blue-200'] {
+  background-color: #f0e6dc !important;
+}
+
+.app-shell:not(.public-job-page) [class*='bg-blue-300'],
+.app-shell:not(.public-job-page) [class*='bg-blue-400'],
+.app-shell:not(.public-job-page) [class*='bg-blue-500'] {
+  background-color: #e3d1c0 !important;
+}
+
+.app-shell:not(.public-job-page) [class*='bg-blue-600'],
+.app-shell:not(.public-job-page) [class*='bg-blue-700'],
+.app-shell:not(.public-job-page) [class*='bg-blue-800'],
+.app-shell:not(.public-job-page) [class*='bg-blue-900'] {
+  background-color: #805536 !important;
+  color: #fffefa !important;
+}
+
+.app-shell:not(.public-job-page) [class*='border-blue-'] {
+  border-color: #c9ad93 !important;
+}
+
+.app-shell:not(.public-job-page) [class*='focus:border-blue-']:focus {
+  border-color: #b89577 !important;
+}
+
+.app-shell:not(.public-job-page) [class*='focus:ring-blue-']:focus {
+  --tw-ring-color: rgba(128, 85, 54, 0.25) !important;
 }

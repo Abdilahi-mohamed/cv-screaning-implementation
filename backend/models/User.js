@@ -14,4 +14,9 @@ const userSchema = new mongoose.Schema({
   created_at: { type: Date, default: Date.now },
 });
 
+userSchema.index(
+  { role: 1 },
+  { unique: true, partialFilterExpression: { role: 'owner' } },
+);
+
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);
