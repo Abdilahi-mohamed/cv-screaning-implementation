@@ -1,8 +1,11 @@
 const validateJobPayload = (req, res, next) => {
-  const { title, description, required_skills, required_qualifications, required_experience, education_requirements, other_requirements, responsibilities } = req.body;
+  const { title, description, required_skills, required_qualifications, required_experience, education_requirements, other_requirements, responsibilities, status } = req.body;
 
   if (!title || !description) {
     return res.status(400).json({ message: 'Job title and description are required.' });
+  }
+  if (status !== undefined && !['active', 'draft'].includes(status)) {
+    return res.status(400).json({ message: 'Job status must be active or draft.' });
   }
 
   const normalizeList = (value) => {

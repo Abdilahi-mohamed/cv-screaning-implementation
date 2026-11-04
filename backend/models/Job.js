@@ -5,6 +5,8 @@ const jobSchema = new mongoose.Schema({
   company_id: { type: String, default: null, index: true },
   title: { type: String, required: true },
   description: { type: String, required: true },
+  location: { type: String, default: '' },
+  job_type: { type: String, default: 'Full time' },
   responsibilities: { type: String, default: '' },
   image_url: { type: String, default: '' },
   company_name: { type: String, default: '' },

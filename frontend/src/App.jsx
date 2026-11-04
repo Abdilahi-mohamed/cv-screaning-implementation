@@ -53,12 +53,14 @@ const APP_THEMES = [
 const defaultApplicationFields = [
   { id: 'candidate_name', key: 'candidate_name', label: 'Full name', type: 'text', required: true, locked: true },
   { id: 'candidate_email', key: 'candidate_email', label: 'Email address', type: 'email', required: true, locked: true },
+  { id: 'cv_file', key: 'cv_file', label: 'CV or resume', type: 'file', required: true, locked: true },
   { id: 'candidate_phone', key: 'candidate_phone', label: 'Phone number', type: 'tel', required: true },
   { id: 'candidate_linkedin', key: 'candidate_linkedin', label: 'LinkedIn profile', type: 'url', required: false },
-  { id: 'cv_file', key: 'cv_file', label: 'CV or resume', type: 'file', required: true, locked: true },
   { id: 'certificate_file', key: 'certificate_file', label: 'Certificate', type: 'file', required: true },
   { id: 'kur_file', key: 'kur_file', label: 'KUR image', type: 'file', required: true },
 ];
+
+const plainText = (html = '') => new DOMParser().parseFromString(String(html), 'text/html').body.textContent || '';
 
 const sanitizeRichText = (html = '') => {
   const document = new DOMParser().parseFromString(String(html), 'text/html');
@@ -187,7 +189,16 @@ function HRProtectedApp({ theme, setTheme }) {
   if (error) {
     return <main className="auth-page"><section className="auth-card"><p className="auth-eyebrow">Company workspace</p><h1>Dashboard unavailable</h1><p className="auth-description" role="alert">{error}</p><button type="button" onClick={() => { setChecking(true); setRetryCount((count) => count + 1); }}>Retry connection</button></section></main>;
   }
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!user) return <Navigate
+    to="/login"
+    replace
+    state={{
+      from: location.pathname,
+      error: ['/upload', '/new-job', '/job-requirements'].includes(location.pathname)
+        ? 'Sign in with a company HR account to open the job creation page.'
+        : undefined,
+    }}
+  />;
   return <AppShell theme={theme} setTheme={setTheme} user={user} onLogout={() => setUser(null)} />;
 }
 
@@ -316,7 +327,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
         </div>
       </header>
 
-      <div className="hr-workspace-layout">
+      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : ''}`}>
         <aside className="hr-sidebar">
           <nav aria-label="Company navigation">
             {navigation.map((item) => (
@@ -332,9 +343,10 @@ function AppShell({ theme, setTheme, user, onLogout }) {
           <main className="app-main min-w-0">
             <Routes>
               <Route path="/" element={<DashboardPage dashboard={dashboard} jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
-              <Route path="/new-job" element={<NewJobPage createJob={createJob} />} />
-              <Route path="/job-requirements" element={<NewJobPage createJob={createJob} />} />
-              <Route path="/upload" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} />} />
+              <Route path="/new-job" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} companyName={user.company_name} />} />
+              <Route path="/job-requirements" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} companyName={user.company_name} />} />
+              <Route path="/cv-upload" element={<NewJobPage createJob={createJob} />} />
+              <Route path="/upload" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} companyName={user.company_name} />} />
               <Route path="/rankings" element={<RankingsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} saveFeedback={saveFeedback} />} />
               <Route path="/results" element={<ResultsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
               <Route path="/interview-questions" element={<InterviewQuestionsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
@@ -731,7 +743,7 @@ function RichTextEditor({ value, onChange }) {
   );
 }
 
-function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
+function JobLinkPage({ setSelectedJobId, primaryBrandColor, companyName: workspaceName }) {
   const [jobs, setJobs] = useState([]);
   const [jobId, setJobId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -739,13 +751,20 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
   const [copied, setCopied] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [companyName, setCompanyName] = useState('');
+  const [companyName, setCompanyName] = useState(workspaceName || '');
   const [brandColor, setBrandColor] = useState(primaryBrandColor);
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
-  const [requiredSkills, setRequiredSkills] = useState('');
+  const [jobLocation, setJobLocation] = useState('');
+  const [jobType, setJobType] = useState('Full time');
+  const [requiredSkills, setRequiredSkills] = useState([]);
+  const [skillInput, setSkillInput] = useState('');
   const [qualifications, setQualifications] = useState('');
+  const [jobExperience, setJobExperience] = useState('');
+  const [otherRequirements, setOtherRequirements] = useState('');
   const [applicationFields, setApplicationFields] = useState(defaultApplicationFields);
+  const [draggedFieldId, setDraggedFieldId] = useState('');
+  const [jobStatus, setJobStatus] = useState('active');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -766,16 +785,32 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
   const loadJobIntoEditor = (job) => {
     setTitle(job?.title || '');
     setDescription(job?.description || '');
-    setCompanyName(job?.company_name || '');
+    setCompanyName(job?.company_name || workspaceName || '');
+    setJobLocation(job?.location || '');
+    setJobType(job?.job_type || 'Full time');
     setBrandColor(/^#[0-9a-f]{6}$/i.test(job?.brand_color || '') ? job.brand_color : primaryBrandColor);
     setLogoPreview(job?.brand_logo_url || '');
     setLogoFile(null);
-    setRequiredSkills((job?.required_skills || job?.rubric?.must_have || []).join('\n'));
+    setRequiredSkills(job?.required_skills || job?.rubric?.must_have || []);
+    setJobExperience(job?.required_experience || '');
+    setOtherRequirements((job?.other_requirements || []).join(', '));
+    setJobStatus(job?.status || 'active');
     setQualifications((job?.required_qualifications || []).join('\n'));
     setApplicationFields(job?.application_fields?.length ? job.application_fields : defaultApplicationFields);
     setError('');
     setSuccess('');
     setCopied(false);
+  };
+
+  const selectLogo = (image) => {
+    if (!image) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(image.type) || image.size > 5 * 1024 * 1024) {
+      setError('Choose a JPEG, PNG, WebP, or GIF logo no larger than 5 MB.');
+      return;
+    }
+    setLogoFile(image);
+    setLogoPreview(URL.createObjectURL(image));
+    setError('');
   };
 
   useEffect(() => () => {
@@ -791,6 +826,20 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
 
   const updateField = (fieldId, updates) => {
     setApplicationFields((fields) => fields.map((field) => field.id === fieldId ? { ...field, ...updates } : field));
+  };
+
+  const moveApplicationField = (targetId) => {
+    if (!draggedFieldId || draggedFieldId === targetId) return;
+    setApplicationFields((fields) => {
+      const sourceIndex = fields.findIndex((field) => field.id === draggedFieldId);
+      const targetIndex = fields.findIndex((field) => field.id === targetId);
+      if (sourceIndex < 0 || targetIndex < 0) return fields;
+      const nextFields = [...fields];
+      const [movedField] = nextFields.splice(sourceIndex, 1);
+      nextFields.splice(targetIndex, 0, movedField);
+      return nextFields;
+    });
+    setDraggedFieldId('');
   };
 
   const addField = (type) => {
@@ -815,8 +864,17 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
     }
   };
 
+  const addSkill = (value) => {
+    const skill = value.trim();
+    if (skill && !requiredSkills.some((item) => item.toLowerCase() === skill.toLowerCase())) {
+      setRequiredSkills((items) => [...items, skill]);
+    }
+    setSkillInput('');
+  };
+
   const saveJob = async (event) => {
     event.preventDefault();
+    const nextStatus = event.nativeEvent.submitter?.value === 'draft' ? 'draft' : 'active';
     if (!title.trim() || !description.trim()) {
       setError('Enter a job title and description before saving.');
       return;
@@ -828,21 +886,24 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
       setError('Every application question needs a label.');
       return;
     }
-    const skills = requiredSkills.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
+    const skills = requiredSkills;
     const qualificationList = qualifications.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
-    const descriptionText = new DOMParser().parseFromString(description, 'text/html').body.textContent.trim();
+    const descriptionText = plainText(description);
     const payload = {
       title: title.trim(),
       description,
       responsibilities: descriptionText,
       company_name: companyName.trim(),
       brand_color: brandColor,
+      location: jobLocation.trim(),
+      job_type: jobType,
+      status: nextStatus,
       application_fields: fields,
       required_skills: skills,
       required_qualifications: qualificationList,
       education_requirements: [],
-      other_requirements: [],
-      required_experience: '',
+      other_requirements: otherRequirements.split(/[\n,]/).map((item) => item.trim()).filter(Boolean),
+      required_experience: jobExperience,
       rubric: {
         must_have: skills,
         nice_to_have: selectedJob?.rubric?.nice_to_have || [],
@@ -867,6 +928,7 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
       }
       setJobs((existing) => [savedJob, ...existing.filter((job) => job.job_id !== savedJob.job_id)]);
       setJobId(savedJob.job_id);
+      setJobStatus(savedJob.status || nextStatus);
       setSelectedJobId(savedJob.job_id);
       window.dispatchEvent(new CustomEvent('cv-evolution:job-updated', { detail: { jobId: savedJob.job_id } }));
       if (typeof BroadcastChannel !== 'undefined') {
@@ -875,7 +937,9 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
         channel.close();
       }
       setLogoFile(null);
-      setSuccess('Job and application form saved. Share its link with candidates.');
+      setSuccess(nextStatus === 'draft'
+        ? 'Draft saved. Publish it when you are ready to accept applications.'
+        : 'Job and application form published. Share its link with candidates.');
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Could not save the job and application form.');
     } finally {
@@ -884,122 +948,85 @@ function JobLinkPage({ setSelectedJobId, primaryBrandColor }) {
   };
 
   return (
-    <div className="app-page space-y-6">
-      <section className="page-panel rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Job link builder</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900">Create your job application</h2>
-          <p className="mt-1 text-sm text-slate-500">Write the job details, add your company branding, and build the candidate form in one place.</p>
-        </div>
-
-        {loading ? <p className="text-sm text-slate-500">Loading saved jobs...</p> : (
-          <label className="mb-6 block max-w-xl text-sm font-semibold text-slate-700">
-            Create or edit a job
-            <select value={jobId} onChange={(event) => {
-              const nextJobId = event.target.value;
-              setJobId(nextJobId);
-              loadJobIntoEditor(jobs.find((job) => job.job_id === nextJobId) || null);
-            }} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-normal outline-none focus:border-blue-500">
-              <option value="">Create a new job</option>
-              {jobs.map((job) => <option key={job.job_id} value={job.job_id}>{job.title}</option>)}
-            </select>
-          </label>
-        )}
-
-        <form onSubmit={saveJob} className="space-y-7">
-          <section className="company-branding-panel space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-slate-900">Company branding</h3>
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                Brand color
-                <input type="color" value={brandColor} onChange={(event) => setBrandColor(event.target.value)} aria-label="Company brand color" className="company-brand-color-picker" />
-                <span className="font-mono uppercase">{brandColor}</span>
-              </label>
+    <div className="app-page job-builder-page">
+      <div className="job-builder-heading">
+        <div><p className="job-builder-eyebrow">Job link builder</p><h1>Create a job</h1><p>Write the job, set what the AI scores against, and build the application form.</p></div>
+        <label className="job-builder-start"><span>Start from</span><select value={jobId} onChange={(event) => {
+          const nextJobId = event.target.value;
+          setJobId(nextJobId);
+          loadJobIntoEditor(jobs.find((job) => job.job_id === nextJobId) || null);
+        }} disabled={loading}><option value="">A new job</option>{jobs.map((job) => <option key={job.job_id} value={job.job_id}>{job.title}{job.status === 'draft' ? ' (Draft)' : ''}</option>)}</select></label>
+      </div>
+      <div className="job-builder-layout">
+        <form id="job-create-form" className="job-builder-sections" onSubmit={saveJob}>
+          <section className="job-builder-card">
+            <div className="job-builder-section-heading"><span className="job-builder-step">1</span><div><h2>Job details</h2><p>Candidates see this on the public job page.</p></div></div>
+            <label className="job-builder-field"><span>Job title</span><input value={title} onChange={(event) => setTitle(event.target.value)} required placeholder="e.g. Human Resources Officer" /></label>
+            <div className="job-builder-grid-two">
+              <label className="job-builder-field"><span>Location</span><input value={jobLocation} onChange={(event) => setJobLocation(event.target.value)} placeholder="e.g. Hargeisa or Remote" /></label>
+              <label className="job-builder-field"><span>Job type</span><select value={jobType} onChange={(event) => setJobType(event.target.value)}><option>Full time</option><option>Part time</option><option>Contract</option><option>Temporary</option><option>Internship</option></select></label>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Company name
-                <input value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="company-branding-control mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none focus:border-blue-500" placeholder="Your company" />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                Company logo
-                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" onChange={(event) => {
-                  const image = event.target.files?.[0] || null;
-                  setLogoFile(image);
-                  setLogoPreview(image ? URL.createObjectURL(image) : selectedJob?.brand_logo_url || '');
-                }} className="company-branding-control mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm file:mr-3 file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:font-semibold file:text-blue-700" />
-                <span className="mt-1 block text-xs font-normal text-slate-500">JPEG, PNG, WebP or GIF (up to 5 MB).</span>
-                {logoPreview && <img src={logoPreview} alt="Company logo preview" className="company-logo-preview mt-3 h-16 max-w-48 rounded-lg border border-slate-200 object-contain p-2" />}
-              </label>
+            <div className="job-builder-field"><span>Description and responsibilities</span><RichTextEditor value={description} onChange={setDescription} /></div>
+          </section>
+
+          <section className="job-builder-card">
+            <div className="job-builder-section-heading"><span className="job-builder-step">2</span><div><h2>Screening requirements</h2><p>The AI scores every CV against these. Be specific.</p></div></div>
+            <div className="job-builder-field"><span>Must-have skills</span><div className="job-builder-chips" onClick={() => document.getElementById('job-skill-input')?.focus()}>
+              {requiredSkills.map((skill) => <span className="job-builder-chip" key={skill}>{skill}<button type="button" aria-label={`Remove ${skill}`} onClick={() => setRequiredSkills((items) => items.filter((item) => item !== skill))}>×</button></span>)}
+              <input id="job-skill-input" value={skillInput} onChange={(event) => setSkillInput(event.target.value)} onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); addSkill(skillInput); }
+                if (event.key === 'Backspace' && !skillInput && requiredSkills.length) setRequiredSkills((items) => items.slice(0, -1));
+              }} onBlur={() => { if (skillInput.trim()) addSkill(skillInput); }} placeholder="Type a skill, press Enter" /></div></div>
+            <div className="job-builder-grid-two">
+              <label className="job-builder-field"><span>Qualifications or certificates</span><input value={qualifications} onChange={(event) => setQualifications(event.target.value)} placeholder="e.g. Bachelor's degree in HR" /></label>
+              <label className="job-builder-field"><span>Minimum experience</span><select value={jobExperience} onChange={(event) => setJobExperience(event.target.value)}><option value="">Select experience</option><option value="2 years">2 yrs</option><option value="3 years">3 yrs</option><option value="5 years">5 yrs</option><option value="7+ years">7+ yrs</option></select></label>
+            </div>
+            <label className="job-builder-field"><span>Custom criteria <small>(optional)</small></span><textarea rows="3" value={otherRequirements} onChange={(event) => setOtherRequirements(event.target.value)} placeholder="e.g. Speaks Somali and English. Has worked in an NGO." /></label>
+          </section>
+
+          <section className="job-builder-card">
+            <div className="job-builder-section-heading"><span className="job-builder-step">3</span><div><h2>Company branding</h2><p>Shown on the public application form.</p></div></div>
+            <div className="job-builder-grid-two">
+              <label className="job-builder-field"><span>Company name</span><input value={companyName} readOnly /></label>
+              <label className="job-builder-field"><span>Brand colour</span><span className="job-builder-color"><input type="color" value={brandColor} onChange={(event) => setBrandColor(event.target.value)} aria-label="Brand colour" /><input value={brandColor} onChange={(event) => /^#[0-9a-f]{0,6}$/i.test(event.target.value) && setBrandColor(event.target.value)} aria-label="Brand colour hex" /></span></label>
+            </div>
+            <div className="job-builder-field"><span>Company logo</span><label className="job-builder-drop" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); selectLogo(event.dataTransfer.files?.[0]); }}><input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" onChange={(event) => selectLogo(event.target.files?.[0])} /><span>↑</span><span>Drop a logo or <strong>browse</strong></span><small>JPG, PNG, WebP, GIF · up to 5 MB</small></label>
+              {logoPreview && <img src={logoPreview} alt="Company logo preview" className="job-builder-logo-preview" />}
             </div>
           </section>
 
-          <label className="block text-sm font-medium text-slate-700">
-            Job title
-            <input value={title} onChange={(event) => setTitle(event.target.value)} required className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none focus:border-blue-500" placeholder="e.g. Human Resources Officer" />
-          </label>
-
-          <div>
-            <h3 className="mb-2 text-sm font-semibold text-slate-700">Job description and requirements</h3>
-            <RichTextEditor value={description} onChange={setDescription} />
-            <p className="mt-1 text-xs text-slate-500">Format your text using font, size, bold, italic and list tools.</p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="block text-sm font-medium text-slate-700">
-              Must-have skills <span className="font-normal text-slate-500">(one per line)</span>
-              <textarea rows="4" value={requiredSkills} onChange={(event) => setRequiredSkills(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500" placeholder={'Communication\\nMicrosoft Office'} />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Qualifications or certificates <span className="font-normal text-slate-500">(one per line)</span>
-              <textarea rows="4" value={qualifications} onChange={(event) => setQualifications(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500" placeholder="Relevant degree or professional certificate" />
-            </label>
-          </div>
-
-          <section className="space-y-4 border-t border-slate-200 pt-6">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Application form questions</h3>
-              <p className="mt-1 text-sm text-slate-500">Choose what applicants need to enter or upload. Name, email and CV are required to submit an application.</p>
-            </div>
-            <div className="space-y-3">
-              {applicationFields.map((field) => (
-                <div key={field.id} className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[minmax(0,1fr)_150px_auto_auto] sm:items-center">
-                  <input aria-label="Question label" value={field.label} onChange={(event) => updateField(field.id, { label: event.target.value })} className="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />
-                  {field.type === 'select' && <input aria-label="Dropdown choices" value={(field.options || []).join(', ')} onChange={(event) => updateField(field.id, { options: event.target.value.split(',').map((option) => option.trim()).filter(Boolean) })} placeholder="Options, comma separated" className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" />}
-                  {field.type !== 'select' && <span className="text-xs capitalize text-slate-500">{field.type === 'file' ? 'Document upload' : field.type === 'image' ? 'Image upload' : field.type === 'textarea' ? 'Long answer' : field.type}</span>}
-                  <label className="flex items-center gap-2 text-sm text-slate-600">
-                    <input type="checkbox" checked={Boolean(field.required)} disabled={['candidate_name', 'candidate_email', 'cv_file'].includes(field.key)} onChange={(event) => updateField(field.id, { required: event.target.checked })} />
-                    Required
-                  </label>
-                  <button type="button" disabled={['candidate_name', 'candidate_email', 'cv_file'].includes(field.key)} onClick={() => setApplicationFields((fields) => fields.filter((item) => item.id !== field.id))} className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-300">Remove</button>
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <button type="button" onClick={() => addField('file')} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">+ Upload document</button>
-              <button type="button" onClick={() => addField('image')} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">+ Upload image</button>
-              <button type="button" onClick={() => addField('text')} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">+ Text</button>
-              <button type="button" onClick={() => addField('number')} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">+ Number</button>
-            </div>
+          <section className="job-builder-card">
+            <div className="job-builder-section-heading"><span className="job-builder-step">4</span><div><h2>Application form</h2><p>Name, email and CV are always required.</p></div></div>
+            <div className="job-builder-application-fields">{applicationFields.map((field) => (
+              <div key={field.id} className="job-builder-application-row" onDragOver={(event) => event.preventDefault()} onDrop={() => moveApplicationField(field.id)}><span className="job-builder-grip" draggable onDragStart={() => setDraggedFieldId(field.id)} onDragEnd={() => setDraggedFieldId('')} title="Drag to reorder">⋮⋮</span>
+                <input aria-label="Field label" value={field.label} onChange={(event) => updateField(field.id, { label: event.target.value })} />
+                <select aria-label="Field type" value={field.type} disabled={['candidate_name', 'candidate_email', 'cv_file'].includes(field.key)} onChange={(event) => updateField(field.id, { type: event.target.value })}>
+                  <option value="text">Text</option><option value="email">Email</option><option value="tel">Phone</option><option value="url">Link</option><option value="number">Number</option><option value="textarea">Long answer</option><option value="file">Document upload</option><option value="image">Image upload</option><option value="select">Dropdown</option>
+                </select>
+                {['candidate_name', 'candidate_email', 'cv_file'].includes(field.key) ? <span className="job-builder-locked">Always required</span> : <label className="job-builder-required"><input type="checkbox" checked={Boolean(field.required)} onChange={(event) => updateField(field.id, { required: event.target.checked })} />Required</label>}
+                <button type="button" className="job-builder-remove-field" aria-label={`Remove ${field.label}`} disabled={['candidate_name', 'candidate_email', 'cv_file'].includes(field.key)} onClick={() => setApplicationFields((fields) => fields.filter((item) => item.id !== field.id))}>⌫</button>
+                {field.type === 'select' && <input className="job-builder-options" aria-label={`${field.label} dropdown options`} value={(field.options || []).join(', ')} onChange={(event) => updateField(field.id, { options: event.target.value.split(',').map((option) => option.trim()).filter(Boolean) })} placeholder="Dropdown options, comma separated" />}
+              </div>
+            ))}</div>
+            <div className="job-builder-add-fields"><span>Add a field:</span><button type="button" onClick={() => addField('file')}>+ Document</button><button type="button" onClick={() => addField('image')}>+ Image</button><button type="button" onClick={() => addField('text')}>+ Text</button><button type="button" onClick={() => addField('number')}>+ Number</button></div>
           </section>
-
-          {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          {success && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p>}
-          <button type="submit" disabled={saving} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">
-            {saving ? 'Saving...' : selectedJob ? 'Save job and form' : 'Create job and form'}
-          </button>
+          {error && <p role="alert" className="job-builder-alert is-error">{error}</p>}
+          {success && <p role="status" className="job-builder-alert is-success">{success}</p>}
         </form>
-      </section>
-
-      {selectedJob && <section className="page-panel rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <h3 className="text-lg font-semibold text-slate-900">Share the application link</h3>
-        <p className="mt-1 text-sm text-slate-500">Candidates can review the job details and company information before opening the application form.</p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <input aria-label="Application link" readOnly value={applicationLink} onFocus={(event) => event.target.select()} className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-700" />
-          <button type="button" onClick={copyLink} className="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-900" style={{ backgroundColor: primaryBrandColor }}>{copied ? 'Copied' : 'Copy link'}</button>
-          <a href={jobPageLink} target="_blank" rel="noreferrer" className="rounded-lg border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">Preview job page</a>
-        </div>
-      </section>}
+        <aside className="job-builder-sticky">
+          <section className="job-builder-card job-builder-checklist"><p className="job-builder-eyebrow">Checklist</p>
+            <p>{title.trim() ? '✓' : '○'} Job title</p><p>{plainText(description).trim() ? '✓' : '○'} Description</p>
+            <p>{requiredSkills.length ? '✓' : '○'} {requiredSkills.length} must-have skills</p><p>✓ {applicationFields.length} form fields</p>
+            <div className="job-builder-actions"><button type="submit" form="job-create-form" value="active" className="job-builder-primary" disabled={saving}>{saving ? 'Saving…' : jobStatus === 'draft' ? 'Publish job and form' : 'Create job and form'}</button><button type="submit" form="job-create-form" value="draft" className="job-builder-secondary" disabled={saving}>Save draft</button></div>
+            <p className="job-builder-note">You get a public link to share once the job is published.</p>
+          </section>
+          {selectedJob?.status === 'active' && <section className="job-builder-card job-builder-checklist">
+            <p className="job-builder-eyebrow">Application link</p>
+            <input aria-label="Application link" readOnly value={applicationLink} onFocus={(event) => event.target.select()} />
+            <div className="job-builder-actions"><button type="button" className="job-builder-primary" onClick={copyLink}>{copied ? 'Copied' : 'Copy link'}</button><a className="job-builder-secondary" href={jobPageLink} target="_blank" rel="noreferrer">Preview job</a></div>
+          </section>}
+        </aside>
+      </div>
     </div>
   );
 }
@@ -1106,6 +1133,7 @@ function PublicJobPage({ theme }) {
 
               <section>
                 <h2 className="text-xl font-semibold text-slate-900">Job description</h2>
+                {(job.location || job.job_type) && <p className="mt-2 text-sm font-medium text-slate-500">{[job.location, job.job_type].filter(Boolean).join(' · ')}</p>}
                 <div className="rich-description public-job-description mt-3 text-sm leading-6 text-slate-600" dangerouslySetInnerHTML={{ __html: sanitizeRichText(job.description) }} />
               </section>
 

@@ -15,6 +15,8 @@ const createJob = async (req, res) => {
     const {
       title,
       description,
+      location,
+      job_type,
       responsibilities,
       required_skills,
       required_qualifications,
@@ -24,6 +26,7 @@ const createJob = async (req, res) => {
       rubric,
       brand_color,
       application_fields,
+      status,
     } = req.body;
 
     if (!title || !description) {
@@ -51,6 +54,8 @@ const createJob = async (req, res) => {
       company_id: req.user.company_id,
       title,
       description,
+      location: String(location || '').trim(),
+      job_type: job_type || 'Full time',
       responsibilities: responsibilities || '',
       company_name: req.company.name,
       brand_color: /^#[0-9a-f]{6}$/i.test(brand_color) ? brand_color : defaultBrandColor,
@@ -62,7 +67,7 @@ const createJob = async (req, res) => {
       other_requirements: other_requirements || [],
       application_link: applicationLink,
       rubric: safeRubric,
-      status: 'active',
+      status: status === 'draft' ? 'draft' : 'active',
       created_at: new Date().toISOString(),
       created_by: req.user.username,
     };
@@ -94,6 +99,8 @@ const updateJob = async (req, res) => {
     const {
       title,
       description,
+      location,
+      job_type,
       responsibilities,
       required_skills,
       required_qualifications,
@@ -103,11 +110,14 @@ const updateJob = async (req, res) => {
       rubric,
       brand_color,
       application_fields,
+      status,
     } = req.body;
 
     Object.assign(job, {
       title,
       description,
+      location: String(location || '').trim(),
+      job_type: job_type || job.job_type || 'Full time',
       responsibilities: responsibilities || '',
       required_skills: required_skills || [],
       required_qualifications: required_qualifications || [],
@@ -118,6 +128,7 @@ const updateJob = async (req, res) => {
       company_name: req.company.name,
       brand_color: /^#[0-9a-f]{6}$/i.test(brand_color) ? brand_color : job.brand_color,
       application_fields: Array.isArray(application_fields) ? application_fields : [],
+      status: status || job.status || 'active',
     });
 
     if (!useMemory()) await job.save();
@@ -150,6 +161,13 @@ const getJobById = async (req, res) => {
     if (!job) {
       return res.status(404).json({ message: 'Job not found.' });
     }
+    const canManageJob = req.user?.role === 'owner'
+      || (req.user?.role === 'hr'
+        && job.company_id === req.user.company_id
+        && req.user.permissions?.includes('jobs:manage'));
+    if (job.status === 'draft' && !canManageJob) {
+      return res.status(404).json({ message: 'Job not found.' });
+    }
 
     if (job.company_id) {
       const company = useMemory()
@@ -159,10 +177,7 @@ const getJobById = async (req, res) => {
         return res.status(404).json({ message: 'Job not found.' });
       }
     }
-    if (req.user?.role === 'owner'
-      || (req.user?.role === 'hr'
-        && job.company_id === req.user.company_id
-        && req.user.permissions?.includes('jobs:manage'))) {
+    if (canManageJob) {
       return res.json(job);
     }
     const {
@@ -170,24 +185,40 @@ const getJobById = async (req, res) => {
       title,
       description,
       responsibilities,
+      location,
+      job_type,
       image_url,
       company_name,
       brand_color,
       brand_logo_url,
       application_fields,
       application_link,
+      required_skills,
+      required_qualifications,
+      required_experience,
+      education_requirements,
+      other_requirements,
+      status,
     } = job;
     return res.json({
       job_id,
       title,
       description,
       responsibilities,
+      location,
+      job_type,
       image_url,
       company_name,
       brand_color,
       brand_logo_url,
       application_fields,
       application_link,
+      required_skills,
+      required_qualifications,
+      required_experience,
+      education_requirements,
+      other_requirements,
+      status,
     });
   } catch (error) {
     return res.status(500).json({ message: error.message || 'Unable to fetch job.' });
