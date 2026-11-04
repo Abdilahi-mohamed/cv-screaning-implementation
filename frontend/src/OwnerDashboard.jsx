@@ -179,7 +179,7 @@ function OwnerWorkspace({ user, onLogout }) {
     { id: 'settings', label: 'System settings', detail: 'Platform configuration', icon: SlidersHorizontal },
   ];
   const titles = {
-    dashboard: ['System overview', 'Monitor company workspaces and recruitment activity across the platform.'],
+    dashboard: ['System overview', 'Company workspaces and recruiting activity across the platform.'],
     companies: ['Company accounts', 'Create, update, suspend, activate, or delete isolated company workspaces.'],
     users: ['HR users & permissions', 'Manage company credentials, account access, and role permissions.'],
     activity: ['Recent activity', 'Review recent HR sign-ins and company workspace activity.'],
@@ -190,8 +190,10 @@ function OwnerWorkspace({ user, onLogout }) {
     <div className="owner-shell">
       <aside className="owner-sidebar">
         <div className="owner-brand">
-          <div className="owner-brand-mark"><ShieldCheck size={22} aria-hidden="true" /></div>
-          <div><strong>TalentPulse</strong><span>System control</span></div>
+          <a className="owner-brand-link" href="/owner" aria-label="CV Screening system overview">
+            <svg width="30" height="22" viewBox="0 0 200 120" aria-hidden="true"><path d="M87.6 32.4 A39 39 0 1 0 87.6 87.6" fill="none" stroke="#8e8cff" strokeWidth="22" /><polygon points="96,10 120,10 146,78.4 172,10 196,10 158,110 134,110" fill="#8e8cff" /></svg>
+            <span><strong>CV Screening</strong><small>SYSTEM ADMIN</small></span>
+          </a>
         </div>
         <p className="owner-nav-caption">ADMINISTRATION</p>
         <nav className="owner-nav" aria-label="Owner navigation">
@@ -211,12 +213,12 @@ function OwnerWorkspace({ user, onLogout }) {
       </aside>
       <main className="owner-main">
         <header className="owner-topbar">
-          <div className="owner-breadcrumb"><span>System</span><ChevronRight size={14} /><strong>{navItems.find((item) => item.id === section)?.label}</strong></div>
-          <div className="owner-topbar-meta"><span className="owner-status-dot" /> Owner access <span className="owner-date">{new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span></div>
+          <div className="owner-breadcrumb"><span>System</span><ChevronRight size={14} /><strong>{section === 'dashboard' ? 'Overview' : navItems.find((item) => item.id === section)?.label}</strong></div>
+          <div className="owner-topbar-meta"><span className="owner-access-pill"><ShieldCheck size={14} aria-hidden="true" />Owner access</span><span className="owner-date">{new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span><button type="button" className="owner-topbar-logout" aria-label="Sign out" onClick={logout}><LogOut size={17} aria-hidden="true" /></button></div>
         </header>
         <div className="owner-content">
           <div className="owner-page-heading">
-            <div><p className="owner-eyebrow">SYSTEM ADMINISTRATION</p><h1>{titles[section][0]}</h1><p>{titles[section][1]}</p></div>
+            <div><p className="owner-eyebrow">SYSTEM ADMINISTRATION</p><h1>{section === 'dashboard' ? 'System overview' : titles[section][0]}</h1><p>{titles[section][1]}</p></div>
             {(section === 'companies' || section === 'dashboard') && <button className="owner-primary-button" type="button" onClick={() => setModalCompany({})}><Plus size={17} /> Create company</button>}
             {section === 'users' && <button className="owner-primary-button" type="button" onClick={() => setModalCompany({ createHrUser: true })}><Plus size={17} /> Create HR user</button>}
           </div>
@@ -259,7 +261,7 @@ function DashboardOverview({ stats, companies, onViewCompanies, onEditCompany })
       </section>
       <section className="owner-overview-grid">
         <div className="owner-panel owner-companies-panel">
-          <div className="owner-panel-heading"><div><h2>Company workspaces</h2><p>Latest company accounts</p></div><button type="button" className="owner-text-button" onClick={onViewCompanies}>View all <ChevronRight size={15} /></button></div>
+          <div className="owner-panel-heading"><div><h2>Company workspaces</h2><p>Newest first</p></div><button type="button" className="owner-text-button" onClick={onViewCompanies}>View all</button></div>
           {companies.length ? (
             <div className="owner-table-wrap">
               <table className="owner-table">
@@ -276,10 +278,11 @@ function DashboardOverview({ stats, companies, onViewCompanies, onEditCompany })
               </table>
             </div>
           ) : <p className="owner-empty">No company workspaces yet. Create one to provision an isolated HR dashboard.</p>}
+          <p className="owner-company-table-note">New companies appear here as soon as you create them.</p>
         </div>
         <div className="owner-panel owner-health-panel">
           <div className="owner-panel-heading"><div><h2>Workspace health</h2><p>Account status summary</p></div><span className="owner-health-icon"><Activity size={18} /></span></div>
-          <div className="owner-health-total"><strong>{stats.active_companies || 0}</strong><span>active workspaces</span></div>
+          <div className="owner-health-total"><strong>{stats.active_companies || 0}</strong><span>of {stats.companies || 0} workspaces active</span></div>
           <div className="owner-health-bar"><span style={{ width: `${stats.companies ? Math.min((stats.active_companies / stats.companies) * 100, 100) : 0}%` }} /></div>
           <div className="owner-health-legend"><span><i className="is-active" /> Active <strong>{stats.active_companies || 0}</strong></span><span><i className="is-suspended" /> Suspended <strong>{stats.suspended_companies || 0}</strong></span></div>
           <div className="owner-health-note"><ShieldCheck size={16} /><span>Company records are isolated by workspace. HR access is checked on every protected API request.</span></div>
