@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNaviga
 import axios from 'axios';
 import { Archive, BriefcaseBusiness, CalendarDays, ClipboardCheck, Download, ExternalLink, LayoutDashboard, Link2, Plus, Printer, Search, Settings as SettingsIcon, Sparkles, Users } from 'lucide-react';
 import LoginPage from './LoginPage.jsx';
+import LandingPage from './LandingPage.jsx';
 import OwnerDashboard from './OwnerDashboard.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -147,6 +148,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/owner/*" element={<OwnerDashboard />} />
         <Route path="/apply/:jobId" element={<PublicJobPage theme={theme} />} />
@@ -234,7 +236,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
     [jobs, selectedJobId],
   );
   const navigation = [
-    { label: 'Dashboard', icon: LayoutDashboard, to: '/' },
+    { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
     { label: 'New Jobs', icon: Link2, to: '/upload' },
     { label: 'Candidates', icon: Users, to: '/rankings' },
     { label: 'Screening Results', icon: ClipboardCheck, to: '/results' },
@@ -342,7 +344,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
         <div className={`app-layout mx-auto w-full ${isRankingPage ? 'ranking-layout' : 'max-w-6xl px-4 py-8 sm:px-6'}`}>
           <main className="app-main min-w-0">
             <Routes>
-              <Route path="/" element={<DashboardPage dashboard={dashboard} jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
+              <Route path="/dashboard" element={<DashboardPage dashboard={dashboard} jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
               <Route path="/new-job" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} companyName={user.company_name} />} />
               <Route path="/job-requirements" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} companyName={user.company_name} />} />
               <Route path="/cv-upload" element={<NewJobPage createJob={createJob} />} />
