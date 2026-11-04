@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String, default: '', trim: true },
   email: { type: String, default: '', lowercase: true, trim: true },
   role: { type: String, enum: ['owner', 'hr'], required: true },
+  is_primary_owner: { type: Boolean, default: false },
   company_id: { type: String, default: null, index: true },
   password_hash: { type: String, required: true, select: false },
   active: { type: Boolean, default: true },
@@ -15,8 +16,8 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.index(
-  { role: 1 },
-  { unique: true, partialFilterExpression: { role: 'owner' } },
+  { is_primary_owner: 1 },
+  { unique: true, partialFilterExpression: { is_primary_owner: true } },
 );
 
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);

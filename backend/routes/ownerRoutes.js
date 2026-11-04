@@ -9,7 +9,7 @@ const {
   updateHrUser,
   updateSettings,
 } = require('../controllers/ownerController');
-const { currentOwner, logoutOwner, ownerSetupStatus, setupOwner } = require('../controllers/authController');
+const { currentOwner, logoutOwner, ownerSetupStatus, registerOwner, setupOwner } = require('../controllers/authController');
 const { requireOwner, requireTrustedOrigin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -18,6 +18,7 @@ router.get('/auth/me', currentOwner);
 router.post('/auth/logout', requireTrustedOrigin, logoutOwner);
 router.get('/auth/setup-status', ownerSetupStatus);
 router.post('/auth/setup', requireTrustedOrigin, setupOwner);
+router.post('/auth/register', requireTrustedOrigin, requireOwner, registerOwner);
 router.use(requireOwner);
 router.get('/dashboard', getDashboard);
 router.get('/settings', getSettings);
