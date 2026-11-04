@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Archive, BriefcaseBusiness, CalendarDays, ClipboardCheck, LayoutDashboard, Link2, Settings as SettingsIcon, Users } from 'lucide-react';
+import { Archive, BriefcaseBusiness, CalendarDays, ClipboardCheck, ExternalLink, LayoutDashboard, Link2, Plus, Printer, Settings as SettingsIcon, Sparkles, Users } from 'lucide-react';
 import LoginPage from './LoginPage.jsx';
 import OwnerDashboard from './OwnerDashboard.jsx';
 
@@ -327,7 +327,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
         </div>
       </header>
 
-      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : ''}`}>
+      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : location.pathname === '/interview-questions' ? 'interview-workspace' : ''}`}>
         <aside className="hr-sidebar">
           <nav aria-label="Company navigation">
             {navigation.map((item) => (
@@ -2218,14 +2218,30 @@ function ResultsPage({ jobs, selectedJobId, setSelectedJobId }) {
 
 function InterviewQuestionsPage({ jobs, selectedJobId, setSelectedJobId }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const jobId = selectedJobId || location.state?.jobId || jobs[0]?.job_id || '';
   const [ranking, setRanking] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [focusedCandidateId, setFocusedCandidateId] = useState(location.state?.candidateId || '');
+  const [activeGroup, setActiveGroup] = useState('all');
+  const [generating, setGenerating] = useState(false);
+  const [showAddQuestion, setShowAddQuestion] = useState(false);
+  const [newQuestion, setNewQuestion] = useState('');
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleDates, setScheduleDates] = useState(() => {
+    const savedDates = {};
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith('interview-date:')) savedDates[key.slice('interview-date:'.length)] = window.localStorage.getItem(key) || '';
+    }
+    return savedDates;
+  });
+  const jobTitle = jobs.find((job) => job.job_id === jobId)?.title || 'Selected job';
 
   useEffect(() => {
-    if (!jobId) return;
+    if (!jobId) return undefined;
     let active = true;
     const loadQuestions = async () => {
       setLoading(true);
@@ -2246,20 +2262,37 @@ function InterviewQuestionsPage({ jobs, selectedJobId, setSelectedJobId }) {
     return () => { active = false; };
   }, [jobId]);
 
-  const candidates = ranking.filter((candidate) => !focusedCandidateId || candidate.cv_id === focusedCandidateId);
+  const selectedCandidate = ranking.find((candidate) => candidate.cv_id === focusedCandidateId) || ranking[0] || null;
+  const scheduleKey = selectedCandidate ? `${jobId}:${selectedCandidate.cv_id}` : '';
+  const scheduledDate = scheduleDates[scheduleKey] || '';
   const getQuestionGroups = (questions = []) => {
-    const groups = { hard: [], interview: [] };
-    questions.slice(0, 10).forEach((item, index) => {
+    const groups = { technical: [], gaps: [], experience: [], behavioural: [] };
+    questions.forEach((item, index) => {
       const question = typeof item === 'string' ? { question: item } : item;
-      const legacyHardQuestion = /problem.solving|technical/i.test(question.category || '')
-        && /challenge|complex|difficult|trade.off|prioriti[sz]|strategy|debug|resolve|measure/i.test(question.question || '');
-      const group = question.difficulty === 'hard' || (!question.difficulty && legacyHardQuestion)
-        ? 'hard'
-        : 'interview';
-      groups[group].push({ ...question, index });
+      const category = `${question.category || ''} ${question.reason || ''}`.toLowerCase();
+      const group = /gap|missing|not listed|probe/.test(category)
+        ? 'gaps'
+        : /behavio|leadership|teamwork|communication|conflict/.test(category)
+          ? 'behavioural'
+          : /experience|project|achievement|career|work history/.test(category)
+            ? 'experience'
+            : 'technical';
+      groups[group].push({ ...question, index, group });
     });
     return groups;
   };
+  const questionGroups = getQuestionGroups(selectedCandidate?.questions || []);
+  const questionGroupTabs = [
+    { key: 'all', label: 'All', count: Object.values(questionGroups).reduce((total, items) => total + items.length, 0) },
+    { key: 'technical', label: 'Technical', count: questionGroups.technical.length },
+    { key: 'gaps', label: 'Gaps to probe', count: questionGroups.gaps.length },
+    { key: 'experience', label: 'Experience', count: questionGroups.experience.length },
+    { key: 'behavioural', label: 'Behavioural', count: questionGroups.behavioural.length },
+  ];
+  const visibleQuestions = activeGroup === 'all'
+    ? Object.values(questionGroups).flat().sort((first, second) => first.index - second.index)
+    : questionGroups[activeGroup] || [];
+  const groupLabels = { technical: 'Technical', gaps: 'Gap to probe', experience: 'Experience', behavioural: 'Behavioural' };
 
   const downloadQuestionsDocument = (candidate) => {
     const groups = getQuestionGroups(candidate.questions);
@@ -2273,15 +2306,11 @@ function InterviewQuestionsPage({ jobs, selectedJobId, setSelectedJobId }) {
       ].filter(Boolean).join('\n')).join('\n\n')
       : 'No questions in this section.';
     const content = [
-      'QUESTIONS & INTERVIEWS',
-      `Candidate: ${candidate.candidate_name}`,
-      `Job: ${jobs.find((job) => job.job_id === jobId)?.title || 'Selected job'}`,
-      '',
-      'HARD QUESTIONS',
-      formatQuestions(groups.hard),
-      '',
       'INTERVIEW QUESTIONS',
-      formatQuestions(groups.interview),
+      `Candidate: ${candidate.candidate_name}`,
+      `Job: ${jobTitle}`,
+      ...Object.entries({ technical: 'TECHNICAL', gaps: 'GAPS TO PROBE', experience: 'EXPERIENCE', behavioural: 'BEHAVIOURAL' })
+        .flatMap(([key, title]) => ['', title, formatQuestions(groups[key])]),
     ].join('\n');
     const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a');
@@ -2291,87 +2320,133 @@ function InterviewQuestionsPage({ jobs, selectedJobId, setSelectedJobId }) {
     URL.revokeObjectURL(url);
   };
 
+  const regenerateQuestions = async () => {
+    if (!selectedCandidate || !jobId) return;
+    setGenerating(true);
+    setError('');
+    try {
+      const response = await axios.post(`${API_URL}/evaluations/${jobId}/candidates/${selectedCandidate.cv_id}/questions`);
+      const questions = Array.isArray(response.data?.questions) ? response.data.questions : [];
+      setRanking((current) => current.map((candidate) => candidate.cv_id === selectedCandidate.cv_id ? { ...candidate, questions } : candidate));
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to regenerate interview questions.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const addManualQuestion = (event) => {
+    event.preventDefault();
+    const prompt = newQuestion.trim();
+    if (!prompt || !selectedCandidate) return;
+    setRanking((current) => current.map((candidate) => candidate.cv_id === selectedCandidate.cv_id
+      ? { ...candidate, questions: [...(candidate.questions || []), { question: prompt, category: 'Your question', reason: '', difficulty: 'interview' }] }
+      : candidate));
+    setNewQuestion('');
+    setShowAddQuestion(false);
+  };
+
+  const saveInterviewDate = (event) => {
+    event.preventDefault();
+    if (!scheduleDate || !selectedCandidate) return;
+    window.localStorage.setItem(`interview-date:${scheduleKey}`, scheduleDate);
+    setScheduleDates((current) => ({ ...current, [scheduleKey]: scheduleDate }));
+    setScheduleOpen(false);
+  };
+
   return (
-    <div className="app-page page-panel questions-report-page space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="app-page interview-page">
+      <div className="interview-jobbar">
+        <label htmlFor="interview-job-select">Job</label>
+        <select id="interview-job-select" value={jobId} onChange={(event) => {
+          setSelectedJobId(event.target.value);
+          setFocusedCandidateId('');
+          setActiveGroup('all');
+        }} disabled={!jobs.length}>
+          {!jobs.length && <option value="">No jobs available</option>}
+          {jobs.map((job) => <option key={job.job_id} value={job.job_id}>{job.title}</option>)}
+        </select>
+      </div>
+      <div className="interview-heading">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Interview pipeline</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900">Questions &amp; Interviews</h2>
-          <p className="mt-1 text-sm text-slate-500">Candidate-specific questions generated from the CV and submitted job requirements.</p>
+          <p className="interview-eyebrow">Interview pipeline</p>
+          <h1>Interview questions</h1>
+          <p>Questions written for each candidate from their CV and this job&apos;s requirements.</p>
         </div>
-        <div className="questions-report-toolbar-actions">
-          <select value={jobId} onChange={(event) => { setSelectedJobId(event.target.value); setFocusedCandidateId(''); }} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
-            {jobs.map((job) => <option key={job.job_id} value={job.job_id}>{job.title}</option>)}
+        <div className="interview-heading-actions">
+          <label htmlFor="interview-candidate-select">Candidate</label>
+          <select id="interview-candidate-select" value={selectedCandidate?.cv_id || ''} onChange={(event) => { setFocusedCandidateId(event.target.value); setActiveGroup('all'); }} disabled={!ranking.length}>
+            {!ranking.length && <option value="">No candidates</option>}
+            {ranking.map((candidate) => <option key={candidate.cv_id} value={candidate.cv_id}>{candidate.candidate_name} · {candidate.score ?? '—'}%</option>)}
           </select>
-          <button type="button" onClick={() => window.print()} className="questions-report-print">Print / Save PDF</button>
+          {selectedCandidate?.questions?.length > 0 && <button type="button" className="interview-outline-button" onClick={() => downloadQuestionsDocument(selectedCandidate)}>Download questions</button>}
+          <button type="button" className="interview-outline-button" onClick={() => window.print()}><Printer size={16} aria-hidden="true" />Print / save PDF</button>
         </div>
       </div>
 
-      {loading && <p role="status" className="text-sm text-slate-500">Loading candidate interview questions...</p>}
-      {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      {!loading && !error && candidates.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No candidates are available for this job.</p>}
-      <div className="grid gap-4">
-        {candidates.map((candidate) => (
-          <section key={candidate.cv_id} className="questions-report-card">
-            <div className="questions-report-card-header">
-              <div className="questions-report-candidate">
-                <span className="questions-report-avatar" aria-hidden="true">{candidate.candidate_name?.charAt(0) || 'C'}</span>
-                <div>
-                  <p className="questions-report-eyebrow">Candidate interview report</p>
-                  <h3>{candidate.candidate_name}</h3>
-                  <p className="questions-report-meta">{candidate.email !== '-' ? candidate.email : 'Candidate'} <span aria-hidden="true">·</span> Rank #{candidate.rank}</p>
-                </div>
-              </div>
-              <div className="questions-report-actions">
-                <div className="questions-report-score">
-                  <strong>{candidate.score}</strong><span>/100</span>
-                  <small>Match score</small>
-                </div>
-                {candidate.questions?.length > 0 && <button type="button" onClick={() => downloadQuestionsDocument(candidate)} className="questions-report-download">Download document</button>}
-              </div>
-            </div>
-            {candidate.questions?.length ? (
-              <div className="questions-report-groups">
-                {[
-                  { key: 'hard', title: 'Hard Questions', description: 'Challenge-led and in-depth prompts', items: getQuestionGroups(candidate.questions).hard },
-                  { key: 'interview', title: 'Interview Questions', description: 'Experience, motivation, and role fit', items: getQuestionGroups(candidate.questions).interview },
-                ].map((group) => (
-                  <section key={group.key} className={`question-group question-group--${group.key}`}>
-                    <div className="question-group-header">
-                      <div>
-                        <p className="question-group-kicker">Question set</p>
-                        <h4>{group.title}</h4>
-                        <p className="question-group-description">{group.description}</p>
-                      </div>
-                      <span className="question-group-count">{String(group.items.length).padStart(2, '0')}</span>
+      {loading && <p role="status" className="interview-notice">Loading candidate interview questions…</p>}
+      {error && <p role="alert" className="interview-error">{error}</p>}
+      {!loading && !error && !jobs.length && <p className="interview-empty">Create a job before viewing interview questions.</p>}
+      {!loading && !error && jobs.length > 0 && !ranking.length && <p className="interview-empty">No candidates are available for this job yet. Upload and evaluate CVs to prepare interview questions.</p>}
+
+      {selectedCandidate && !loading && (
+        <div className="interview-content-grid">
+          <section className="interview-questions-card">
+            <nav className="interview-tabs" aria-label="Question groups">
+              {questionGroupTabs.map((tab) => <button key={tab.key} type="button" aria-current={activeGroup === tab.key ? 'page' : undefined} onClick={() => setActiveGroup(tab.key)}>{tab.label} · {tab.count}</button>)}
+            </nav>
+            {visibleQuestions.length ? (
+              <ol className="interview-question-list">
+                {visibleQuestions.map((question, index) => {
+                  const key = question.group;
+                  return <li className="interview-question" key={`${selectedCandidate.cv_id}-${question.index}`}>
+                    <span className="interview-question-number">{index + 1}</span>
+                    <div className="interview-question-body">
+                      <p className="interview-question-category">{groupLabels[key]}</p>
+                      <p className="interview-question-prompt">{question.question}</p>
+                      {(question.reason || question.related_evidence) && <p className="interview-question-why"><Sparkles size={14} aria-hidden="true" /><span>Why: {question.reason || question.related_evidence}</span></p>}
                     </div>
-                    {group.items.length ? (
-                      <ol className="question-report-list">
-                        {group.items.map((question, index) => (
-                          <li key={`${candidate.cv_id}-${question.index}`} className="question-report-item">
-                            <div className="question-report-item-header">
-                              <span className="question-report-number">{String(index + 1).padStart(2, '0')}</span>
-                              <span className="question-report-category">{question.category || 'Job-related'}</span>
-                            </div>
-                            <p className="question-report-prompt">{question.question}</p>
-                            {(question.reason || question.related_evidence || question.evaluation_guidance) && (
-                              <div className="question-report-details">
-                                {question.reason && <p><strong>Why this question</strong>{question.reason}</p>}
-                                {question.related_evidence && <p><strong>Related evidence</strong>{question.related_evidence}</p>}
-                                {question.evaluation_guidance && <p><strong>What to listen for</strong>{question.evaluation_guidance}</p>}
-                              </div>
-                            )}
-                          </li>
-                        ))}
-                      </ol>
-                    ) : <p className="question-group-empty">No questions in this section yet. Generate questions from the Ranking Page.</p>}
-                  </section>
-                ))}
-              </div>
-            ) : <p className="questions-report-empty">Questions have not been generated for this candidate.</p>}
+                  </li>;
+                })}
+              </ol>
+            ) : <p className="interview-empty interview-empty-inline">{selectedCandidate.questions?.length ? 'No questions match this group.' : 'Questions have not been generated for this candidate yet.'}</p>}
+            {showAddQuestion && <form className="interview-add-question-form" onSubmit={addManualQuestion}>
+              <label htmlFor="manual-interview-question">Your interview question</label>
+              <textarea id="manual-interview-question" value={newQuestion} onChange={(event) => setNewQuestion(event.target.value)} maxLength={1000} rows={3} required placeholder="Write a question for this candidate…" />
+              <div><button type="button" className="interview-outline-button" onClick={() => { setShowAddQuestion(false); setNewQuestion(''); }}>Cancel</button><button type="submit" className="interview-primary-button">Add question</button></div>
+            </form>}
+            <div className="interview-question-actions">
+              <button type="button" className="interview-outline-button" onClick={() => setShowAddQuestion((visible) => !visible)}><Plus size={16} aria-hidden="true" />Add your own question</button>
+              <button type="button" className="interview-primary-button" onClick={regenerateQuestions} disabled={generating}><Sparkles size={16} aria-hidden="true" />{generating ? 'Generating…' : 'Regenerate questions'}</button>
+            </div>
           </section>
-        ))}
-      </div>
+
+          <aside className="interview-side-cards">
+            <section className="interview-candidate-card">
+              <div className="interview-candidate-info">
+                <span className="interview-avatar">{selectedCandidate.candidate_name?.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'C'}</span>
+                <div><h2>{selectedCandidate.candidate_name}</h2><p>{jobTitle}</p></div>
+              </div>
+              <div className="interview-candidate-score">
+                <span className={`interview-status-pill is-${selectedCandidate.status === 'shortlisted' ? 'shortlisted' : selectedCandidate.status === 'rejected' ? 'rejected' : 'pending'}`}><span aria-hidden="true">{selectedCandidate.status === 'shortlisted' ? '✓' : '•'}</span>{selectedCandidate.status === 'shortlisted' ? 'Shortlisted' : selectedCandidate.status === 'rejected' ? 'Rejected' : 'Pending decision'}</span>
+                <strong>{selectedCandidate.score ?? '—'}{selectedCandidate.score !== null && selectedCandidate.score !== undefined ? '%' : ''}</strong>
+              </div>
+              <button type="button" className="interview-text-link" onClick={() => navigate('/results', { state: { jobId, candidateId: selectedCandidate.cv_id } })}><ExternalLink size={14} aria-hidden="true" />Open screening result</button>
+            </section>
+            <section className="interview-schedule-card">
+              <p className="interview-eyebrow">Interview</p>
+              <p className="interview-schedule-status">{scheduledDate ? new Date(scheduledDate).toLocaleString() : 'Not scheduled'}</p>
+              <p className="interview-schedule-hint">Add a date so you can keep track of the interview.</p>
+              {scheduleOpen ? <form onSubmit={saveInterviewDate}>
+                <label htmlFor="interview-date">Date and time</label>
+                <input id="interview-date" type="datetime-local" value={scheduleDate} onChange={(event) => setScheduleDate(event.target.value)} required />
+                <div><button type="button" className="interview-outline-button" onClick={() => setScheduleOpen(false)}>Cancel</button><button type="submit" className="interview-primary-button">Save date</button></div>
+              </form> : <button type="button" className="interview-outline-button" onClick={() => { setScheduleDate(scheduledDate); setScheduleOpen(true); }}>{scheduledDate ? 'Change interview date' : 'Set interview date'}</button>}
+              <p className="interview-local-note">Saved in this browser.</p>
+            </section>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }
