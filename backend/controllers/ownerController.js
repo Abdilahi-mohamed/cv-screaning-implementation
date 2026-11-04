@@ -11,7 +11,7 @@ const { hashPassword } = require('../services/authService');
 const PERMISSIONS = ['jobs:manage', 'candidates:manage', 'settings:manage'];
 const databaseUnavailable = (res) => res.status(503).json({ message: 'Owner administration requires the configured database.' });
 const validUsername = (username) => /^[a-z0-9][a-z0-9._-]{2,39}$/.test(username);
-const validPassword = (password) => typeof password === 'string' && password.length >= 12 && password.length <= 256;
+const validPassword = (password) => typeof password === 'string' && password.length >= 6 && password.length <= 256;
 const validEmail = (email) => !email || (email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
 
 const getDashboard = async (req, res, next) => {
@@ -126,7 +126,7 @@ const createCompany = async (req, res, next) => {
     if (name.length < 2 || name.length > 120) return res.status(400).json({ message: 'Company name must be between 2 and 120 characters.' });
     if (!validUsername(username)) return res.status(400).json({ message: 'HR username must be 3–40 characters using letters, numbers, dots, underscores, or hyphens.' });
     if (hrName.length > 100 || !validEmail(email)) return res.status(400).json({ message: 'Enter a valid HR name and email address.' });
-    if (!validPassword(password)) return res.status(400).json({ message: 'HR password must be between 12 and 256 characters.' });
+    if (!validPassword(password)) return res.status(400).json({ message: 'HR password must be between 6 and 256 characters.' });
     if (await User.exists({ username })) return res.status(409).json({ message: 'That username is already assigned to another account.' });
 
     const company = await Company.create({ company_id: `company_${crypto.randomUUID()}`, name });
@@ -228,7 +228,7 @@ const updateHrUser = async (req, res, next) => {
       user.permissions = req.body.permissions;
     }
     if (req.body?.password !== undefined) {
-      if (!validPassword(req.body.password)) return res.status(400).json({ message: 'HR password must be between 12 and 256 characters.' });
+      if (!validPassword(req.body.password)) return res.status(400).json({ message: 'HR password must be between 6 and 256 characters.' });
       user.password_hash = await hashPassword(req.body.password);
       await Session.deleteMany({ user_id: user._id });
     }

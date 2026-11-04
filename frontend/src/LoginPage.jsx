@@ -75,10 +75,10 @@ function LoginPage() {
           <label htmlFor="login-username">{creatingOwner ? 'Owner username' : 'Username'}</label>
           <input id="login-username" name="username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} required minLength={creatingOwner ? 3 : undefined} maxLength={40} />
           <label htmlFor="login-password">Password</label>
-          <input id="login-password" name="password" type="password" autoComplete={creatingOwner ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={creatingOwner ? 12 : undefined} maxLength={256} />
+          <input id="login-password" name="password" type="password" autoComplete={creatingOwner ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={creatingOwner ? 6 : undefined} maxLength={256} />
           {creatingOwner && <>
             <label htmlFor="login-confirm-password">Confirm password</label>
-            <input id="login-confirm-password" name="confirmPassword" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={256} />
+            <input id="login-confirm-password" name="confirmPassword" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={6} maxLength={256} />
           </>}
           {error && <p className="auth-error" role="alert">{error}</p>}
           {setupError && <p className="auth-error" role="alert">{setupError}</p>}

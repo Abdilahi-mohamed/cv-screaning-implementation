@@ -39,8 +39,8 @@ const initializeOwner = async () => {
   const username = String(process.env.OWNER_USERNAME || '').trim().toLowerCase();
   const password = process.env.OWNER_PASSWORD || '';
   if (!username && !password) return;
-  if (!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username) || password.length < 12 || password.length > 256) {
-    throw new Error('Set both OWNER_USERNAME and an OWNER_PASSWORD of at least 12 characters to bootstrap the system owner.');
+  if (!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username) || password.length < 6 || password.length > 256) {
+    throw new Error('Set both OWNER_USERNAME and an OWNER_PASSWORD of at least 6 characters to bootstrap the system owner.');
   }
   await User.create({
     username,

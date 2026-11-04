@@ -152,8 +152,8 @@ const setupOwner = async (req, res, next) => {
     if (!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)) {
       return res.status(400).json({ message: 'Owner username must be 3–40 characters using letters, numbers, dots, underscores, or hyphens.' });
     }
-    if (typeof password !== 'string' || password.length < 12 || password.length > 256) {
-      return res.status(400).json({ message: 'Owner password must be between 12 and 256 characters.' });
+    if (typeof password !== 'string' || password.length < 6 || password.length > 256) {
+      return res.status(400).json({ message: 'Owner password must be between 6 and 256 characters.' });
     }
 
     await User.init();

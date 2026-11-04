@@ -373,7 +373,7 @@ function CompanyModal({ company, createHrUser = false, onClose, onSave }) {
     event.preventDefault();
     if (name.trim().length < 2) { setError('Enter a company name with at least two characters.'); return; }
     if (!/^[a-z0-9][a-z0-9._-]{2,39}$/i.test(hrUsername.trim())) { setError('HR username must be 3–40 letters, numbers, dots, underscores, or hyphens.'); return; }
-    if ((!editing || password) && password.length < 12) { setError('Use a password with at least 12 characters.'); return; }
+    if ((!editing || password) && password.length < 6) { setError('Use a password with at least 6 characters.'); return; }
     if (!editing && password !== confirmPassword) { setError('The password and confirmation do not match.'); return; }
     setSaving(true);
     setError('');
@@ -405,8 +405,8 @@ function CompanyModal({ company, createHrUser = false, onClose, onSave }) {
           <div className="owner-form-section-title"><Users size={16} /> HR user account</div>
           <label>HR full name<input value={hrName} onChange={(event) => setHrName(event.target.value)} required autoComplete="name" /></label>
           <label>HR username<input value={hrUsername} onChange={(event) => setHrUsername(event.target.value)} required autoComplete="off" /></label>
-          <label>{editing ? 'Reset HR password (optional)' : 'HR password'}<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required={!editing} minLength={12} maxLength={256} autoComplete="new-password" placeholder={editing ? 'Leave blank to keep current password' : 'At least 12 characters'} /></label>
-          {!editing && <label>Confirm password<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={12} maxLength={256} autoComplete="new-password" /></label>}
+          <label>{editing ? 'Reset HR password (optional)' : 'HR password'}<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required={!editing} minLength={6} maxLength={256} autoComplete="new-password" placeholder={editing ? 'Leave blank to keep current password' : 'At least 6 characters'} /></label>
+          {!editing && <label>Confirm password<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={6} maxLength={256} autoComplete="new-password" /></label>}
           {editing && <label>HR email<input type="email" value={hrEmail} onChange={(event) => setHrEmail(event.target.value)} autoComplete="email" /></label>}
           {editing && <label className="owner-access-toggle"><span>HR account access</span><select value={active ? 'active' : 'suspended'} onChange={(event) => setActive(event.target.value === 'active')}><option value="active">Active</option><option value="suspended">Suspended</option></select></label>}
           <fieldset className="owner-permissions"><legend>HR permissions</legend>{PERMISSION_OPTIONS.map((permission) => <label key={permission.value}><input type="checkbox" checked={permissions.includes(permission.value)} onChange={(event) => setPermissions((current) => event.target.checked ? [...current, permission.value] : current.filter((value) => value !== permission.value))} /><span>{permission.label}</span></label>)}</fieldset>
