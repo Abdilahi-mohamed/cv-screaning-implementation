@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Archive, BriefcaseBusiness, CalendarDays, ClipboardCheck, ExternalLink, LayoutDashboard, Link2, Plus, Printer, Settings as SettingsIcon, Sparkles, Users } from 'lucide-react';
+import { Archive, BriefcaseBusiness, CalendarDays, ClipboardCheck, Download, ExternalLink, LayoutDashboard, Link2, Plus, Printer, Search, Settings as SettingsIcon, Sparkles, Users } from 'lucide-react';
 import LoginPage from './LoginPage.jsx';
 import OwnerDashboard from './OwnerDashboard.jsx';
 
@@ -327,7 +327,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
         </div>
       </header>
 
-      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : location.pathname === '/interview-questions' ? 'interview-workspace' : location.pathname === '/results' ? 'screening-workspace' : ''}`}>
+      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : location.pathname === '/interview-questions' ? 'interview-workspace' : location.pathname === '/results' ? 'screening-workspace' : location.pathname === '/rankings' ? 'rankings-page-workspace' : ''}`}>
         <aside className="hr-sidebar">
           <nav aria-label="Company navigation">
             {navigation.map((item) => (
@@ -1267,7 +1267,9 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
   const [activeDocumentType, setActiveDocumentType] = useState('');
   const [filter, setFilter] = useState('all');
   const [analysisFilter, setAnalysisFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('score');
   const [candidateQuery, setCandidateQuery] = useState('');
+  const [showCandidateWorkspace, setShowCandidateWorkspace] = useState(false);
   const [chatThreads, setChatThreads] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
@@ -1402,16 +1404,60 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
     return () => { active = false; };
   }, [jobId, location.state?.startProcessing, hasChosenJob, jobs, setSelectedJobId]);
 
-  const visibleRows = ranking.filter((entry) => {
+  const filteredRows = ranking.filter((entry) => {
     const matchesStatus = filter === 'all' || entry.status === filter;
     const matchesAnalysis = analysisFilter === 'all' || entry.analysis_status === analysisFilter;
     const query = candidateQuery.trim().toLowerCase();
-    const matchesQuery = !query || [entry.candidate_name, entry.email, entry.phone, entry.city]
+    const matchesQuery = !query || [
+      entry.candidate_name,
+      entry.email,
+      entry.phone,
+      entry.city,
+      ...(entry.matched_requirements || []),
+      ...(entry.missing_requirements || []),
+    ]
       .some((value) => String(value || '').toLowerCase().includes(query));
     return matchesStatus && matchesAnalysis && matchesQuery;
   });
+  const scoreValue = (score) => Number.isFinite(Number(score)) && score !== null && score !== undefined ? Number(score) : -1;
+  const visibleRows = [...filteredRows].sort((first, second) => sortOrder === 'newest'
+    ? new Date(second.uploaded_at || 0) - new Date(first.uploaded_at || 0)
+    : scoreValue(second.score) - scoreValue(first.score));
   const activeCandidate = visibleRows.find((candidate) => candidate.cv_id === activeCandidateId) || visibleRows[0];
   const activeDocument = activeCandidate?.documents?.[activeDocumentType];
+  const totalCandidates = ranking.length;
+  const processingCandidates = ranking.filter((candidate) => candidate.analysis_status !== 'analyzed').length;
+  const shortlistedCandidates = ranking.filter((candidate) => candidate.status === 'shortlisted').length;
+  const reviewCandidates = ranking.filter((candidate) => candidate.analysis_status === 'analyzed' && candidate.status === 'pending_decision').length;
+  const rejectedCandidates = ranking.filter((candidate) => candidate.status === 'rejected').length;
+  const selectedJob = jobs.find((job) => job.job_id === jobId);
+  const exportShortlist = () => {
+    const shortlist = ranking.filter((candidate) => candidate.status === 'shortlisted');
+    if (!shortlist.length) {
+      setError('There are no shortlisted candidates to export.');
+      return;
+    }
+    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const csv = [
+      ['Rank', 'Candidate', 'Email', 'Phone', 'Match score', 'Status', 'Uploaded'],
+      ...shortlist.map((candidate) => [
+        candidate.rank ?? '',
+        candidate.candidate_name,
+        candidate.email,
+        candidate.phone,
+        candidate.score ?? '',
+        candidate.status,
+        candidate.uploaded_at || '',
+      ]),
+    ].map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${(selectedJob?.title || 'candidate').replace(/[^a-z0-9-]/gi, '-').toLowerCase()}-shortlist.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setError('');
+  };
   const selectCandidate = (candidateId) => {
     if (candidateId !== activeCandidate?.cv_id) {
       setChatThreads([]);
@@ -1775,74 +1821,97 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
   }
 
   return (
-    <div className="app-page page-panel space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <div className="app-page candidate-rankings-page">
+      <header className="candidate-rankings-heading">
         <div>
-          <p className="page-header-eyebrow">Ranking workspace</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-white">Candidate Rankings</h2>
-          <p className="page-header-summary">AI-assisted benchmark against Senior Full Stack Engineer requirements and custom criteria.</p>
+          <p className="candidate-rankings-eyebrow">Ranking workspace</p>
+          <h1>Candidate rankings</h1>
+          <p>Scored against the {selectedJob?.title || 'selected job'} requirements and your custom criteria.</p>
         </div>
-
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <button type="button" className="mini-panel-button is-primary h-10 shrink-0 rounded-lg px-4 text-xs font-semibold tracking-wide uppercase hover:brightness-95">
-            Export Shortlist
-          </button>
-          <button
-            type="button"
-            onClick={rerankWithAI}
-            disabled={reranking || loading || !jobId || ranking.length === 0}
-            className="mini-panel-button is-primary h-10 shrink-0 rounded-lg px-4 text-xs font-semibold tracking-wide uppercase hover:brightness-95 disabled:cursor-wait disabled:opacity-60"
-          >
-            {reranking ? 'Analyzing…' : 'Run AI Evaluation'}
-          </button>
+        <div className="candidate-rankings-actions">
+          <button type="button" className="rankings-outline-button" onClick={exportShortlist}><Download size={16} aria-hidden="true" />Export shortlist</button>
+          <button type="button" className="rankings-primary-button" onClick={rerankWithAI} disabled={reranking || loading || !jobId || ranking.length === 0}><Sparkles size={16} aria-hidden="true" />{reranking ? 'Running evaluation…' : 'Run AI evaluation'}</button>
         </div>
-      </div>
+      </header>
 
-      <div className="mt-4 flex flex-wrap gap-3">
-        <select value={jobId} onChange={(e) => {
+      <div className="rankings-job-picker">
+        <label htmlFor="ranking-job-select">Job</label>
+        <select id="ranking-job-select" value={jobId} onChange={(event) => {
           setHasChosenJob(true);
-          setSelectedJobId(e.target.value);
+          setSelectedJobId(event.target.value);
+          setShowCandidateWorkspace(false);
           setActiveDocumentType('');
           setChatThreads([]);
           setActiveConversationId('');
           setChatMessages([]);
           setLoadedChatConversationId('');
-        }} className="rounded-xl border border-slate-300/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400">
-          {jobs.map((job) => (
-            <option key={job.job_id} value={job.job_id}>{job.title} · {job.job_id.slice(-4)}</option>
-          ))}
-        </select>
-        <input
-          type="search"
-          value={candidateQuery}
-          onChange={(event) => setCandidateQuery(event.target.value)}
-          placeholder="Search candidates"
-          aria-label="Search candidates"
-          className="h-10 min-w-44 rounded-xl border border-slate-300/10 bg-slate-900/70 px-3 text-sm text-slate-100 outline-none placeholder:text-slate-400 focus:border-emerald-400"
-        />
-        <select value={filter} onChange={(e) => {
-          setFilter(e.target.value);
-          setActiveDocumentType('');
-        }} className="rounded-xl border border-slate-300/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400">
-          <option value="all">All</option>
-          <option value="pending_decision">Pending</option>
-          <option value="shortlisted">Shortlisted</option>
-          <option value="rejected">Rejected</option>
-        </select>
-        <select value={analysisFilter} onChange={(event) => setAnalysisFilter(event.target.value)} aria-label="Filter by AI analysis status" className="rounded-xl border border-slate-300/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400">
-          <option value="all">All analysis</option>
-          <option value="analyzed">Analyzed</option>
-          <option value="not_analyzed">Needs analysis</option>
+        }} disabled={!jobs.length}>
+          {!jobs.length && <option value="">No jobs available</option>}
+          {jobs.map((job) => <option key={job.job_id} value={job.job_id}>{job.title}</option>)}
         </select>
       </div>
 
-      {loading && <p role="status" className="text-sm text-slate-500">Loading candidate rankings...</p>}
-      {reranking && <p role="status" className="text-sm text-slate-500">AI ayaa dib u falanqaynaya musharraxiinta...</p>}
-      {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      {!loading && !error && visibleRows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">No analyzed candidates are available for this job yet. Submit requirements and CVs to begin the evaluation.</div>
-      ) : visibleRows.length > 0 && (
-        <div className="ranking-workspace grid min-h-[620px] gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+      {error && <p role="alert" className="rankings-error">{error}</p>}
+      {reranking && <p role="status" className="rankings-notice">AI evaluation is analyzing and ranking candidates…</p>}
+      {loading && <p role="status" className="rankings-notice">Loading candidate rankings…</p>}
+
+      <section className="rankings-stat-grid" aria-label="Candidate screening summary">
+        <article className="rankings-stat-card"><p>CVs screened</p><strong>{totalCandidates}</strong><small>{processingCandidates} awaiting analysis</small></article>
+        <article className="rankings-stat-card"><p>Shortlisted</p><strong className="is-good">{shortlistedCandidates}</strong><small>Based on saved decisions</small></article>
+        <article className="rankings-stat-card"><p>Needs review</p><strong className="is-review">{reviewCandidates}</strong><small>Awaiting a decision</small></article>
+        <article className="rankings-stat-card"><p>Rejected</p><strong className="is-low">{rejectedCandidates}</strong><small>Based on saved decisions</small></article>
+      </section>
+
+      <section className="rankings-table-card">
+        <div className="rankings-toolbar">
+          <label className="rankings-search">
+            <Search size={17} aria-hidden="true" />
+            <input type="search" value={candidateQuery} onChange={(event) => setCandidateQuery(event.target.value)} placeholder="Search by name, skill or email" aria-label="Search by name, skill or email" />
+          </label>
+          <select value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="Filter by candidate status">
+            <option value="all">All statuses</option><option value="shortlisted">Shortlisted</option><option value="pending_decision">Needs review</option><option value="rejected">Rejected</option>
+          </select>
+          <select value={analysisFilter} onChange={(event) => setAnalysisFilter(event.target.value)} aria-label="Filter by analysis status">
+            <option value="all">All analysis</option><option value="analyzed">Analyzed</option><option value="not_analyzed">Pending</option>
+          </select>
+          <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sort candidates">
+            <option value="score">Highest score first</option><option value="newest">Newest first</option>
+          </select>
+        </div>
+        <div className="rankings-table-scroll">
+          <table className="rankings-table">
+            <thead><tr><th>#</th><th>Candidate</th><th>Match</th><th>Required skills</th><th>Status</th><th>Uploaded</th><th><span className="rankings-visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              {visibleRows.map((candidate) => {
+                const matchedCount = candidate.matched_requirements?.length || 0;
+                const skillsTotal = selectedJob?.required_skills?.length || selectedJob?.rubric?.must_have?.length || 0;
+                const status = candidate.analysis_status !== 'analyzed' ? 'pending' : candidate.status === 'shortlisted' ? 'shortlisted' : candidate.status === 'rejected' ? 'rejected' : 'review';
+                const score = candidate.score === null || candidate.score === undefined ? null : Math.max(0, Math.min(100, Number(candidate.score)));
+                const isSelected = candidate.cv_id === activeCandidate?.cv_id;
+                return <tr key={candidate.cv_id || candidate.email} className={isSelected ? 'is-selected' : ''}>
+                  <td className="rankings-rank">{candidate.rank ?? '—'}</td>
+                  <td><button type="button" className="rankings-candidate-cell" onClick={() => selectCandidate(candidate.cv_id)}>
+                    <span className="rankings-avatar">{candidate.candidate_name?.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'C'}</span>
+                    <span><strong>{candidate.candidate_name}</strong><small>{candidate.email || 'Email unavailable'}</small></span>
+                  </button></td>
+                  <td>{score === null ? <span className="rankings-unscored">Not scored yet</span> : <span className="rankings-match"><strong className={score >= 75 ? 'is-good' : score >= 50 ? 'is-review' : 'is-low'}>{score}%</strong><span className="rankings-score-bar"><span className={score >= 75 ? 'is-good' : score >= 50 ? 'is-review' : 'is-low'} style={{ width: `${score}%` }} /></span></span>}</td>
+                  <td>{skillsTotal ? `${matchedCount} of ${skillsTotal}` : '—'}</td>
+                  <td><span className={`rankings-status-pill is-${status}`}>{status === 'shortlisted' ? '✓ Shortlisted' : status === 'rejected' ? '× Rejected' : status === 'review' ? '◷ Needs review' : '◌ Pending'}</span></td>
+                  <td className="rankings-upload-date">{candidate.uploaded_at ? new Date(candidate.uploaded_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
+                  <td><button type="button" className="rankings-view-button" onClick={() => { selectCandidate(candidate.cv_id); setShowCandidateWorkspace(true); setActiveDocumentType(''); }}>View</button></td>
+                </tr>;
+              })}
+              {!loading && visibleRows.length === 0 && <tr><td colSpan="7" className="rankings-no-results">{ranking.length ? 'No candidates match these filters.' : 'No candidates have been uploaded for this job yet.'}</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        <p className="rankings-table-footer">Showing {visibleRows.length} of {totalCandidates} candidates · Open a candidate to review their documents and AI assessment.</p>
+      </section>
+
+      {showCandidateWorkspace && activeCandidate && (
+        <section className="rankings-candidate-detail">
+          <div className="rankings-detail-heading"><div><p className="candidate-rankings-eyebrow">Candidate review</p><h2>{activeCandidate.candidate_name}</h2></div><button type="button" className="rankings-outline-button" onClick={() => setShowCandidateWorkspace(false)}>Back to rankings</button></div>
+          <div className="ranking-workspace grid min-h-[620px] gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside className="ranking-sidebar overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
             <div className="border-b border-slate-200 px-4 py-4">
               <h3 className="font-semibold text-slate-900">Candidates</h3>
@@ -1994,10 +2063,11 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
               </div>
             </section>
           )}
-        </div>
+          </div>
+        </section>
       )}
 
-      {activeCandidate && (
+      {showCandidateWorkspace && activeCandidate && (
         <section className="ranking-chat-panel overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/70">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/70 px-5 py-4">
             <div className="flex items-center gap-3">
