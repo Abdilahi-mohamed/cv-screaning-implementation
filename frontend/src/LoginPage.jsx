@@ -28,7 +28,7 @@ function LoginPage() {
         && !location.state.from.startsWith('/owner')
         && !location.state.from.startsWith('/apply')
         ? location.state.from
-        : '/';
+        : '/dashboard';
       navigate(returnTo, { replace: true });
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Unable to sign in. Check your username and password.');
