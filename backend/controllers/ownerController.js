@@ -13,6 +13,13 @@ const databaseUnavailable = (res) => res.status(503).json({ message: 'Owner admi
 const validUsername = (username) => /^[a-z0-9][a-z0-9._-]{2,39}$/.test(username);
 const validPassword = (password) => typeof password === 'string' && password.length >= 6 && password.length <= 256;
 const validEmail = (email) => !email || (email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+const serializeSettings = (settings) => ({
+  allow_public_applications: settings.allow_public_applications,
+  default_brand_color: settings.default_brand_color,
+  max_cv_file_size_mb: settings.max_cv_file_size_mb ?? 10,
+  rejected_retention_months: settings.rejected_retention_months === undefined ? 6 : settings.rejected_retention_months,
+  updated_at: settings.updated_at,
+});
 
 const getDashboard = async (req, res, next) => {
   try {
@@ -43,11 +50,7 @@ const getSettings = async (req, res, next) => {
       { $setOnInsert: { key: 'platform' } },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ).lean();
-    return res.json({
-      allow_public_applications: settings.allow_public_applications,
-      default_brand_color: settings.default_brand_color,
-      updated_at: settings.updated_at,
-    });
+    return res.json(serializeSettings(settings));
   } catch (error) {
     return next(error);
   }
@@ -69,6 +72,18 @@ const updateSettings = async (req, res, next) => {
       }
       updates.default_brand_color = req.body.default_brand_color;
     }
+    if (req.body?.max_cv_file_size_mb !== undefined) {
+      if (![5, 10, 20].includes(req.body.max_cv_file_size_mb)) {
+        return res.status(400).json({ message: 'Maximum CV file size must be 5, 10, or 20 MB.' });
+      }
+      updates.max_cv_file_size_mb = req.body.max_cv_file_size_mb;
+    }
+    if (req.body?.rejected_retention_months !== undefined) {
+      if (req.body.rejected_retention_months !== null && ![6, 12].includes(req.body.rejected_retention_months)) {
+        return res.status(400).json({ message: 'Rejected application retention must be 6 months, 12 months, or forever.' });
+      }
+      updates.rejected_retention_months = req.body.rejected_retention_months;
+    }
     if (!Object.keys(updates).length) return res.status(400).json({ message: 'Provide at least one system setting to update.' });
     updates.updated_by = req.user.username;
     updates.updated_at = new Date();
@@ -77,11 +92,7 @@ const updateSettings = async (req, res, next) => {
       { $set: updates, $setOnInsert: { key: 'platform' } },
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true },
     ).lean();
-    return res.json({
-      allow_public_applications: settings.allow_public_applications,
-      default_brand_color: settings.default_brand_color,
-      updated_at: settings.updated_at,
-    });
+    return res.json(serializeSettings(settings));
   } catch (error) {
     return next(error);
   }

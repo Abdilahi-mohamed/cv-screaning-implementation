@@ -37,6 +37,10 @@ const cvSchema = new mongoose.Schema({
   },
   similarity_score: { type: Number, default: 0 },
   uploaded_at: { type: Date, default: Date.now },
+  retention_cleanup_started_at: { type: Date, default: null },
+  anonymized_at: { type: Date, default: null },
 });
+
+cvSchema.index({ status: 1, uploaded_at: 1, anonymized_at: 1 });
 
 module.exports = mongoose.models.CV || mongoose.model('CV', cvSchema);

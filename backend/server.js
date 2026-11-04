@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { initializeOwner } = require('./services/authService');
+const { startRejectedApplicationRetention } = require('./services/rejectedApplicationRetentionService');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { openRouterConfigured, openRouterModel } = require('./services/openRouterService');
 
@@ -117,6 +118,7 @@ const startServer = async () => {
     await connectDB();
     if (require('mongoose').connection.readyState === 1) {
       await initializeOwner();
+      startRejectedApplicationRetention();
     } else if (process.env.OWNER_USERNAME || process.env.OWNER_PASSWORD) {
       console.error('System owner bootstrap was skipped because the database is unavailable.');
     }

@@ -671,7 +671,7 @@ function NewJobPage({ createJob }) {
             onChange={(event) => setCvFiles(Array.from(event.target.files || []))}
             className="mt-1 block w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm file:mr-4 file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700"
           />
-          <span className="mt-1 block text-xs text-slate-500">Upload one or more text-readable PDF or Word CVs (up to 10 MB each).</span>
+          <span className="mt-1 block text-xs text-slate-500">Upload one or more text-readable PDF or Word CVs, within the system-configured file-size limit.</span>
         </label>
 
         <div>

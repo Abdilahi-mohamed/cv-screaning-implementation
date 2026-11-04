@@ -14,7 +14,6 @@ import {
   Pause,
   Plus,
   Search,
-  Settings,
   ShieldCheck,
   SlidersHorizontal,
   Download,
@@ -29,6 +28,12 @@ const PERMISSION_OPTIONS = [
   { value: 'settings:manage', label: 'Manage workspace settings' },
 ];
 const emptyStats = { companies: 0, active_companies: 0, suspended_companies: 0, hr_users: 0, jobs: 0, candidates: 0 };
+const defaultSystemSettings = {
+  allow_public_applications: true,
+  default_brand_color: '#2f6f9f',
+  max_cv_file_size_mb: 10,
+  rejected_retention_months: 6,
+};
 const currentDate = () => new Date();
 const dateLabel = (value) => value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never';
 const timeLabel = (value) => value ? new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No sign-in yet';
@@ -60,7 +65,8 @@ function OwnerWorkspace({ user, onLogout }) {
   const [section, setSection] = useState('dashboard');
   const [stats, setStats] = useState(emptyStats);
   const [companies, setCompanies] = useState([]);
-  const [settings, setSettings] = useState({ allow_public_applications: true, default_brand_color: '#2f6f9f' });
+  const [settings, setSettings] = useState(defaultSystemSettings);
+  const [savedSettings, setSavedSettings] = useState(defaultSystemSettings);
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [error, setError] = useState('');
@@ -83,7 +89,9 @@ function OwnerWorkspace({ user, onLogout }) {
       ]);
       setStats(dashboardResponse.data.stats || emptyStats);
       setCompanies(Array.isArray(companiesResponse.data) ? companiesResponse.data : []);
-      setSettings(settingsResponse.data);
+      const loadedSettings = { ...defaultSystemSettings, ...settingsResponse.data };
+      setSettings(loadedSettings);
+      setSavedSettings(loadedSettings);
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Unable to load system data.');
     } finally {
@@ -127,6 +135,7 @@ function OwnerWorkspace({ user, onLogout }) {
     try {
       const response = await axios.put(`${API_URL}/owner/settings`, settings, { withCredentials: true });
       setSettings(response.data);
+      setSavedSettings(response.data);
       setNotice('System settings saved.');
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Unable to save system settings.');
@@ -206,7 +215,7 @@ function OwnerWorkspace({ user, onLogout }) {
     companies: ['Company accounts', 'Create, update, suspend, activate, or delete isolated company workspaces.'],
     users: ['HR users & permissions', 'Manage company credentials, account access, and role permissions.'],
     activity: ['Recent activity', 'Review the latest recorded HR account activity across company workspaces.'],
-    settings: ['System settings', 'Manage public applications and the default company brand color.'],
+    settings: ['System settings', 'Defaults that apply across every company workspace.'],
   };
 
   return (
@@ -239,7 +248,7 @@ function OwnerWorkspace({ user, onLogout }) {
           <div className="owner-breadcrumb"><span>System</span><ChevronRight size={14} /><strong>{section === 'dashboard' ? 'Overview' : navItems.find((item) => item.id === section)?.label}</strong></div>
           <div className="owner-topbar-meta"><span className="owner-access-pill"><ShieldCheck size={14} aria-hidden="true" />Owner access</span><span className="owner-date">{new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span><button type="button" className="owner-topbar-logout" aria-label="Sign out" onClick={logout}><LogOut size={17} aria-hidden="true" /></button></div>
         </header>
-        <div className="owner-content">
+        <div className={`owner-content ${section === 'settings' ? 'owner-settings-content' : ''}`}>
           <div className="owner-page-heading">
             <div><p className="owner-eyebrow">SYSTEM ADMINISTRATION</p><h1>{section === 'dashboard' ? 'System overview' : titles[section][0]}</h1><p>{titles[section][1]}</p></div>
             {(section === 'companies' || section === 'dashboard') && <button className="owner-primary-button" type="button" onClick={() => setModalCompany({})}><Plus size={17} /> Create company</button>}
@@ -255,7 +264,7 @@ function OwnerWorkspace({ user, onLogout }) {
               )}
               {section === 'users' && <UserList companies={visibleHrCompanies} allCompanies={activeCompanies} query={userSearch} onQuery={setUserSearch} companyFilter={userCompanyFilter} onCompanyFilter={setUserCompanyFilter} onEdit={setModalCompany} />}
               {section === 'activity' && <ActivityList companies={activeCompanies} companyFilter={activityCompanyFilter} onCompanyFilter={setActivityCompanyFilter} />}
-              {section === 'settings' && <SystemSettingsForm settings={settings} onChange={setSettings} onSave={saveSettings} saving={savingSettings} />}
+              {section === 'settings' && <SystemSettingsForm settings={settings} savedSettings={savedSettings} onChange={setSettings} onSave={saveSettings} onDiscard={() => setSettings(savedSettings)} saving={savingSettings} />}
             </>
           )}
         </div>
@@ -475,14 +484,60 @@ function ActivityList({ companies, companyFilter, onCompanyFilter }) {
   );
 }
 
-function SystemSettingsForm({ settings, onChange, onSave, saving }) {
+function SystemSettingsForm({ settings, savedSettings, onChange, onSave, onDiscard, saving }) {
+  const [brandColor, setBrandColor] = useState(settings.default_brand_color);
+  const isBrandColorValid = /^#[0-9a-f]{6}$/i.test(brandColor);
+  const isDirty = brandColor !== savedSettings.default_brand_color
+    || Object.keys(defaultSystemSettings).some((key) => settings[key] !== savedSettings[key]);
+  const updateBrandColor = (color) => {
+    setBrandColor(color);
+    if (/^#[0-9a-f]{6}$/i.test(color)) onChange({ ...settings, default_brand_color: color });
+  };
+  const discardChanges = () => {
+    setBrandColor(savedSettings.default_brand_color);
+    onDiscard();
+  };
+
   return (
-    <section className="owner-panel owner-settings-panel">
-      <div className="owner-panel-heading"><div><h2>Platform configuration</h2><p>These settings apply across company workspaces.</p></div><Settings size={19} /></div>
+    <section className="owner-panel owner-settings-panel owner-system-settings">
+      <div className="owner-panel-heading"><div><h2>Platform configuration</h2><p>Changes apply immediately to all workspaces.</p></div></div>
       <form className="owner-settings-form" onSubmit={onSave}>
-        <label className="owner-setting-row"><span><strong>Public job applications</strong><small>Allow candidates to submit applications through public company job links.</small></span><input type="checkbox" checked={settings.allow_public_applications} onChange={(event) => onChange({ ...settings, allow_public_applications: event.target.checked })} /></label>
-        <label className="owner-setting-row owner-color-setting"><span><strong>Default company brand color</strong><small>Used as the initial brand color for new company job postings.</small></span><span className="owner-color-input"><input type="color" value={settings.default_brand_color} onChange={(event) => onChange({ ...settings, default_brand_color: event.target.value })} /><code>{settings.default_brand_color}</code></span></label>
-        <div className="owner-settings-actions"><p>Changes are stored in the system database and apply immediately.</p><button type="submit" className="owner-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Save system settings'}</button></div>
+        <label className="owner-setting-row">
+          <span><strong>Public job applications</strong><small>Let candidates apply through public company job links.</small></span>
+          <input className="owner-setting-switch" type="checkbox" role="switch" checked={settings.allow_public_applications} onChange={(event) => onChange({ ...settings, allow_public_applications: event.target.checked })} />
+        </label>
+        <div className="owner-setting-row owner-color-setting">
+          <div><strong>Default company brand colour</strong><small>The starting colour for new company job pages. Companies can change it.</small></div>
+          <div className="owner-color-controls">
+            <div className="owner-color-swatches" role="group" aria-label="Brand colour presets">
+              {[['Indigo', '#2f2dd6'], ['Teal', '#0f766e'], ['Slate', '#334155']].map(([label, color]) => (
+                <button key={color} type="button" aria-label={label} aria-pressed={settings.default_brand_color.toLowerCase() === color} style={{ backgroundColor: color }} onClick={() => updateBrandColor(color)} />
+              ))}
+            </div>
+            <input className="owner-color-hex" aria-label="Custom colour hex" value={brandColor} aria-invalid={!isBrandColorValid} maxLength={7} onChange={(event) => updateBrandColor(event.target.value)} />
+          </div>
+        </div>
+        <div className="owner-setting-row">
+          <span><strong>Maximum CV file size</strong><small>Applies to every application upload field.</small></span>
+          <select className="owner-setting-select" aria-label="Maximum CV file size" value={settings.max_cv_file_size_mb} onChange={(event) => onChange({ ...settings, max_cv_file_size_mb: Number(event.target.value) })}>
+            {[5, 10, 20].map((size) => <option key={size} value={size}>{size} MB</option>)}
+          </select>
+        </div>
+        <div className="owner-setting-row">
+          <span><strong>Keep rejected applications for</strong><small>After this, CV files and personal details are deleted; scores stay anonymised.</small></span>
+          <select className="owner-setting-select" aria-label="Rejected application retention" value={settings.rejected_retention_months ?? 'forever'} onChange={(event) => onChange({ ...settings, rejected_retention_months: event.target.value === 'forever' ? null : Number(event.target.value) })}>
+            <option value="6">6 months</option>
+            <option value="12">12 months</option>
+            <option value="forever">Forever</option>
+          </select>
+        </div>
+        <div className="owner-settings-actions">
+          <p role="status">{isDirty ? 'Unsaved changes.' : 'No unsaved changes.'}</p>
+          <div>
+            <button type="button" className="owner-secondary-button" onClick={discardChanges} disabled={!isDirty || saving}>Discard</button>
+            <button type="submit" className="owner-primary-button" disabled={!isDirty || !isBrandColorValid || saving}>{saving ? 'Saving…' : 'Save settings'}</button>
+          </div>
+        </div>
       </form>
     </section>
   );
