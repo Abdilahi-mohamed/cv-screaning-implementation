@@ -329,7 +329,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
         </div>
       </header>
 
-      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : location.pathname === '/interview-questions' ? 'interview-workspace' : location.pathname === '/results' ? 'screening-workspace' : location.pathname === '/rankings' ? 'rankings-page-workspace' : ''}`}>
+      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : location.pathname === '/interview-questions' ? 'interview-workspace' : location.pathname === '/results' ? 'screening-workspace' : location.pathname === '/rankings' ? 'rankings-page-workspace' : location.pathname === '/settings' ? 'settings-workspace' : ''}`}>
         <aside className="hr-sidebar">
           <nav aria-label="Company navigation">
             {navigation.map((item) => (
@@ -352,7 +352,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
               <Route path="/rankings" element={<RankingsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} saveFeedback={saveFeedback} />} />
               <Route path="/results" element={<ResultsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} saveFeedback={saveFeedback} />} />
               <Route path="/interview-questions" element={<InterviewQuestionsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
-              <Route path="/settings" element={<SettingsPage selectedJobId={selectedJobId} theme={theme} setTheme={setTheme} />} />
+              <Route path="/settings" element={<SettingsPage selectedJob={selectedJob} theme={theme} setTheme={setTheme} />} />
             </Routes>
           </main>
         </div>
@@ -2609,7 +2609,7 @@ function InterviewQuestionsPage({ jobs, selectedJobId, setSelectedJobId }) {
   );
 }
 
-function SettingsPage({ selectedJobId, theme, setTheme }) {
+function SettingsPage({ selectedJob, theme, setTheme }) {
   const [aiConfiguration, setAiConfiguration] = useState(null);
   const [aiConfigurationError, setAiConfigurationError] = useState('');
   const [exportError, setExportError] = useState('');
@@ -2627,12 +2627,12 @@ function SettingsPage({ selectedJobId, theme, setTheme }) {
   }, []);
 
   const exportFile = async (type) => {
-    if (!selectedJobId) {
+    if (!selectedJob?.job_id) {
       setExportError('Select a job with completed evaluations before exporting results.');
       return;
     }
     try {
-      const response = await axios.get(`${API_URL}/jobs/${selectedJobId}/ranking`);
+      const response = await axios.get(`${API_URL}/jobs/${selectedJob.job_id}/ranking`);
       const candidates = Array.isArray(response.data?.ranking) ? response.data.ranking : [];
       const csv = [
         ['Rank', 'Candidate', 'Email', 'Score', 'Status', 'Feedback'],
@@ -2652,96 +2652,101 @@ function SettingsPage({ selectedJobId, theme, setTheme }) {
     }
   };
 
-  return (
-    <div className="app-page page-panel space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Workspace preferences</p>
-        <h2 className="mt-1 text-2xl font-bold text-slate-900">Settings</h2>
-        <p className="mt-1 text-sm text-slate-500">Personalize your workspace and manage AI connections and data exports.</p>
-      </div>
+  const providerConnected = aiConfiguration?.configured === true;
 
-      <section className="space-y-4">
-        <div>
-          <h3 className="text-base font-semibold text-slate-900">Workspace theme</h3>
-          <p className="mt-1 text-sm text-slate-500">Choose a visual style. Your preference is saved on this device.</p>
+  return (
+    <div className="settings-page">
+      <header className="settings-page-heading">
+        <p className="settings-eyebrow">Workspace preferences</p>
+        <h1>Settings</h1>
+        <p>Choose how the workspace looks, check the AI connection and export your data.</p>
+      </header>
+
+      <section className="settings-card" aria-labelledby="settings-appearance-title">
+        <div className="settings-card-heading">
+          <div>
+            <h2 id="settings-appearance-title">Appearance</h2>
+            <p>Saved on this device.</p>
+          </div>
         </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {APP_THEMES.map((option) => {
-            const isSelected = theme === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => setTheme(option.id)}
-                className={`theme-option-card rounded-xl border p-4 text-left transition ${isSelected ? 'is-selected' : ''}`}
+        <fieldset className="settings-theme-options">
+          <legend className="sr-only">Choose a workspace theme</legend>
+          {APP_THEMES.map((option) => (
+            <label className={`settings-theme-option ${theme === option.id ? 'is-selected' : ''}`} key={option.id}>
+              <span
+                className="settings-theme-preview"
+                aria-hidden="true"
+                style={{
+                  '--preview-bg': option.swatches[0],
+                  '--preview-surface': option.swatches[1],
+                  '--preview-brand': option.swatches[2],
+                  '--preview-accent': option.swatches[3],
+                }}
               >
-                <div
-                  className="theme-option-preview mb-4 flex h-24 gap-2 overflow-hidden rounded-lg border p-2"
-                  data-preview-theme={option.id}
-                  style={{
-                    '--preview-bg': option.swatches[0],
-                    '--preview-surface': option.swatches[1],
-                    '--preview-brand': option.swatches[2],
-                    '--preview-accent': option.swatches[3],
-                  }}
-                >
-                  <div className="theme-preview-sidebar flex w-1/4 flex-col gap-1 rounded-md p-1.5">
-                    <span className="theme-preview-mark h-2 w-2 rounded-sm" />
-                    <span className="theme-preview-line h-1 w-full rounded-full" />
-                    <span className="theme-preview-line h-1 w-3/4 rounded-full" />
-                    <span className="theme-preview-line h-1 w-4/5 rounded-full" />
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
-                    <span className="theme-preview-line h-1.5 w-2/5 rounded-full" />
-                    <div className="flex flex-1 gap-1.5">
-                      <span className="theme-preview-card flex-1 rounded-md" />
-                      <span className="theme-preview-card flex-1 rounded-md" />
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start justify-between gap-3">
-                  <span>
-                    <span className="block text-sm font-semibold text-slate-900">{option.name}</span>
-                    <span className="mt-1 block text-xs text-slate-500">{option.description}</span>
-                  </span>
-                  <span className="flex shrink-0 gap-1 pt-1" aria-label={`${option.name} colors`}>
-                    {option.swatches.map((color) => <span key={color} className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ backgroundColor: color }} />)}
-                  </span>
-                </div>
-                <span className="mt-3 block text-xs font-medium text-blue-600">{isSelected ? 'Active theme' : 'Preview and use theme'}</span>
-              </button>
-            );
-          })}
-        </div>
+                <span className="settings-theme-preview-sidebar"><i /></span>
+                <span className="settings-theme-preview-content">
+                  <i />
+                  <b />
+                  <i />
+                </span>
+              </span>
+              <span className="settings-theme-option-label">
+                <input
+                  type="radio"
+                  name="workspace-theme"
+                  value={option.id}
+                  checked={theme === option.id}
+                  onChange={() => setTheme(option.id)}
+                />
+                <span>
+                  <strong>{option.name}</strong>
+                  <small>{option.description}</small>
+                </span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-lg font-semibold text-slate-900">OpenRouter AI</h3>
-          {aiConfigurationError ? (
-            <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{aiConfigurationError}</p>
-          ) : (
-            <p role="status" className={`rounded-xl p-3 text-sm ${aiConfiguration?.configured ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>
-              {aiConfiguration === null
-                ? 'Checking backend configuration...'
-                : aiConfiguration.configured
-                  ? `OpenRouter is configured on the server. Evaluations, chat, and interview questions use ${aiConfiguration.model}.`
-                  : 'OpenRouter is not configured. Add OPENROUTER_API_KEY to backend/.env and restart the backend.'}
-            </p>
-          )}
-          <p className="text-xs leading-5 text-slate-500">The OpenRouter API key stays on the backend and is never sent to the browser. Provider errors are reported rather than silently switching providers.</p>
-        </div>
-
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <h3 className="text-lg font-semibold text-slate-900">Export data</h3>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => exportFile('text/csv')} className={`${buttonClasses.green} rounded-lg px-4 py-2 text-sm font-medium`}>Export CSV</button>
-            <button onClick={() => exportFile('application/json')} className={`${buttonClasses.green} rounded-lg px-4 py-2 text-sm font-medium`}>Export JSON</button>
+      <section className="settings-card settings-ai-card" aria-labelledby="settings-ai-title">
+        <div className="settings-ai-heading">
+          <div>
+            <h2 id="settings-ai-title">AI engine</h2>
+            <p>Used for scoring, summaries and interview questions.</p>
           </div>
-          {exportError && <p role="alert" className="text-sm text-red-700">{exportError}</p>}
+          <span className={`settings-status ${aiConfigurationError ? 'is-error' : providerConnected ? 'is-connected' : aiConfiguration ? 'is-warning' : ''}`} role={aiConfigurationError ? 'alert' : 'status'}>
+            <span aria-hidden="true" />
+            {aiConfigurationError ? 'Connection error' : aiConfiguration === null ? 'Checking…' : providerConnected ? 'Connected' : 'Not configured'}
+          </span>
         </div>
-      </div>
+        {aiConfigurationError && <p className="settings-inline-error">{aiConfigurationError}</p>}
+        {!aiConfigurationError && aiConfiguration && !providerConnected && <p className="settings-inline-warning">OpenRouter is not configured. Add OPENROUTER_API_KEY to the backend environment to enable AI features.</p>}
+        <dl className="settings-ai-details">
+          <div><dt>Provider</dt><dd>OpenRouter</dd></div>
+          <div><dt>Model</dt><dd><code>{aiConfiguration?.model || '—'}</code></dd></div>
+          <div className="settings-ai-key-row">
+            <dt>API key</dt>
+            <dd>Stored on the server and never sent to the browser. Provider errors are shown instead of silently switching providers.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="settings-card settings-export-card" aria-labelledby="settings-export-title">
+        <div className="settings-card-heading">
+          <div>
+            <h2 id="settings-export-title">Export data</h2>
+            <p>Download candidate names, scores and review status for a selected job.</p>
+          </div>
+        </div>
+        {selectedJob && <p className="settings-export-job">Selected job: <strong>{selectedJob.title}</strong></p>}
+        <div className="settings-export-actions">
+          <button type="button" className="settings-export-button" onClick={() => exportFile('text/csv')}><Download size={17} aria-hidden="true" />Export CSV</button>
+          <button type="button" className="settings-export-button" onClick={() => exportFile('application/json')}><Download size={17} aria-hidden="true" />Export JSON</button>
+        </div>
+        {exportError
+          ? <p className="settings-inline-error" role="alert">{exportError}</p>
+          : <p className="settings-export-note">CSV opens in Excel or Google Sheets. JSON is useful for developer workflows and backups.</p>}
+      </section>
     </div>
   );
 }
