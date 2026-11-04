@@ -17,6 +17,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  Download,
   Users,
   X,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ const PERMISSION_OPTIONS = [
   { value: 'settings:manage', label: 'Manage workspace settings' },
 ];
 const emptyStats = { companies: 0, active_companies: 0, suspended_companies: 0, hr_users: 0, jobs: 0, candidates: 0 };
+const currentDate = () => new Date();
 const dateLabel = (value) => value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never';
 const timeLabel = (value) => value ? new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No sign-in yet';
 
@@ -67,6 +69,7 @@ function OwnerWorkspace({ user, onLogout }) {
   const [companyStatusFilter, setCompanyStatusFilter] = useState('all');
   const [userSearch, setUserSearch] = useState('');
   const [userCompanyFilter, setUserCompanyFilter] = useState('all');
+  const [activityCompanyFilter, setActivityCompanyFilter] = useState('all');
   const [modalCompany, setModalCompany] = useState(null);
   const [pendingDeleteCompany, setPendingDeleteCompany] = useState(null);
 
@@ -202,7 +205,7 @@ function OwnerWorkspace({ user, onLogout }) {
     dashboard: ['System overview', 'Company workspaces and recruiting activity across the platform.'],
     companies: ['Company accounts', 'Create, update, suspend, activate, or delete isolated company workspaces.'],
     users: ['HR users & permissions', 'Manage company credentials, account access, and role permissions.'],
-    activity: ['Recent activity', 'Review recent HR sign-ins and company workspace activity.'],
+    activity: ['Recent activity', 'Review the latest recorded HR account activity across company workspaces.'],
     settings: ['System settings', 'Manage public applications and the default company brand color.'],
   };
 
@@ -251,7 +254,7 @@ function OwnerWorkspace({ user, onLogout }) {
                 <CompanyList companies={visibleCompanies} query={query} onQuery={setQuery} statusFilter={companyStatusFilter} onStatusFilter={setCompanyStatusFilter} onEdit={setModalCompany} onToggle={updateCompanyStatus} onDelete={setPendingDeleteCompany} />
               )}
               {section === 'users' && <UserList companies={visibleHrCompanies} allCompanies={activeCompanies} query={userSearch} onQuery={setUserSearch} companyFilter={userCompanyFilter} onCompanyFilter={setUserCompanyFilter} onEdit={setModalCompany} />}
-              {section === 'activity' && <ActivityList companies={activeCompanies} />}
+              {section === 'activity' && <ActivityList companies={activeCompanies} companyFilter={activityCompanyFilter} onCompanyFilter={setActivityCompanyFilter} />}
               {section === 'settings' && <SystemSettingsForm settings={settings} onChange={setSettings} onSave={saveSettings} saving={savingSettings} />}
             </>
           )}
@@ -397,16 +400,78 @@ function UserList({ companies, allCompanies, query, onQuery, companyFilter, onCo
   );
 }
 
-function ActivityList({ companies }) {
-  const recent = companies.filter((company) => company.hr_user?.last_active_at || company.hr_user?.last_login_at)
-    .sort((a, b) => new Date(b.hr_user.last_active_at || b.hr_user.last_login_at) - new Date(a.hr_user.last_active_at || a.hr_user.last_login_at));
+function ActivityList({ companies, companyFilter, onCompanyFilter }) {
+  const recent = companies
+    .map((company) => {
+      const timestamp = company.hr_user?.last_active_at || company.hr_user?.last_login_at;
+      return { company, timestamp, date: timestamp ? new Date(timestamp) : null };
+    })
+    .filter(({ company, date }) => date && !Number.isNaN(date.getTime()) && (companyFilter === 'all' || company.company_id === companyFilter))
+    .sort((a, b) => b.date - a.date);
+  const groups = recent.reduce((result, item) => {
+    const key = `${item.date.getFullYear()}-${item.date.getMonth()}-${item.date.getDate()}`;
+    if (!result[key]) result[key] = { date: item.date, items: [] };
+    result[key].items.push(item);
+    return result;
+  }, {});
+  const today = currentDate();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const getDayLabel = (date) => {
+    if (date.toDateString() === today.toDateString()) return `Today · ${dateLabel(date)}`;
+    if (date.toDateString() === yesterday.toDateString()) return `Yesterday · ${dateLabel(date)}`;
+    return dateLabel(date);
+  };
+  const exportActivity = () => {
+    const escapeCsv = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+    const rows = [
+      ['Activity', 'HR user', 'Username', 'Company', 'Workspace status', 'Timestamp'],
+      ...recent.map(({ company, timestamp }) => [
+        'Latest recorded HR account activity',
+        company.hr_user.name || company.hr_user.username,
+        company.hr_user.username,
+        company.name,
+        company.status,
+        new Date(timestamp).toISOString(),
+      ]),
+    ];
+    const csv = `\uFEFF${rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n')}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hr-activity-${currentDate().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
   return (
-    <section className="owner-panel">
-      <div className="owner-panel-heading"><div><h2>Recent HR activity</h2><p>Most recent authenticated use by company account.</p></div><span className="owner-health-icon"><Activity size={18} /></span></div>
-      {recent.length ? <div className="owner-activity-list">{recent.map((company) => (
-        <article key={company.company_id} className="owner-activity-row"><span className="owner-activity-mark"><Users size={17} /></span><div><strong>{company.hr_user?.name || company.hr_user?.username} <span>accessed</span> {company.name}</strong><small>{company.hr_user?.username} · {company.status} workspace</small></div><time>{timeLabel(company.hr_user?.last_active_at || company.hr_user?.last_login_at)}</time></article>
-      ))}</div> : <p className="owner-empty">No HR account sign-ins recorded yet.</p>}
-    </section>
+    <div className="owner-activity-page">
+      <div className="owner-activity-toolbar">
+        <label htmlFor="owner-activity-company">Company
+          <select id="owner-activity-company" value={companyFilter} onChange={(event) => onCompanyFilter(event.target.value)}>
+            <option value="all">All companies</option>
+            {companies.map((company) => <option value={company.company_id} key={company.company_id}>{company.name}</option>)}
+          </select>
+        </label>
+        <button type="button" className="owner-secondary-button" onClick={exportActivity} disabled={!recent.length}><Download size={15} aria-hidden="true" /> Export log</button>
+      </div>
+      <section className="owner-panel owner-activity-panel">
+        <div className="owner-panel-heading"><div><h2>Activity log</h2><p>Latest recorded activity timestamp for each HR account.</p></div><span className="owner-health-icon"><Activity size={18} /></span></div>
+        {recent.length ? Object.entries(groups).map(([key, group]) => (
+          <div key={key}>
+            <h3 className="owner-activity-day">{getDayLabel(group.date)}</h3>
+            <div className="owner-activity-list">{group.items.map(({ company, timestamp }) => (
+              <article key={company.company_id} className="owner-activity-row">
+                <span className="owner-activity-mark"><Activity size={17} aria-hidden="true" /></span>
+                <div><strong>{company.hr_user?.name || company.hr_user?.username} <span>was active in</span> {company.name}</strong><small>{company.hr_user?.username} · {company.status} workspace</small></div>
+                <time dateTime={new Date(timestamp).toISOString()}>{new Date(timestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</time>
+              </article>
+            ))}</div>
+          </div>
+        )) : <p className="owner-empty">{companyFilter === 'all' ? 'No HR account activity has been recorded yet.' : 'No HR account activity is recorded for this company.'}</p>}
+        <p className="owner-activity-note">Only each account&apos;s latest activity timestamp is available; a historical event log is not currently retained.</p>
+      </section>
+    </div>
   );
 }
 
