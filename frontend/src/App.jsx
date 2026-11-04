@@ -293,10 +293,10 @@ function AppShell({ theme, setTheme, user, onLogout }) {
     return response.data;
   };
 
-  const saveFeedback = async ({ cv_id, decision, notes }) => {
+  const saveFeedback = async ({ cv_id, job_id, decision, notes }) => {
     const response = await axios.post(`${API_URL}/feedback`, {
       cv_id,
-      job_id: selectedJob?.job_id,
+      job_id: job_id || selectedJob?.job_id,
       decision,
       notes,
     });
@@ -327,7 +327,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
         </div>
       </header>
 
-      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : location.pathname === '/interview-questions' ? 'interview-workspace' : ''}`}>
+      <div className={`hr-workspace-layout ${['/upload', '/new-job', '/job-requirements'].includes(location.pathname) ? 'job-builder-workspace' : location.pathname === '/interview-questions' ? 'interview-workspace' : location.pathname === '/results' ? 'screening-workspace' : ''}`}>
         <aside className="hr-sidebar">
           <nav aria-label="Company navigation">
             {navigation.map((item) => (
@@ -348,7 +348,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
               <Route path="/cv-upload" element={<NewJobPage createJob={createJob} />} />
               <Route path="/upload" element={<JobLinkPage setSelectedJobId={setSelectedJobId} primaryBrandColor={primaryBrandColor} companyName={user.company_name} />} />
               <Route path="/rankings" element={<RankingsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} saveFeedback={saveFeedback} />} />
-              <Route path="/results" element={<ResultsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
+              <Route path="/results" element={<ResultsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} saveFeedback={saveFeedback} />} />
               <Route path="/interview-questions" element={<InterviewQuestionsPage jobs={jobs} selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />} />
               <Route path="/settings" element={<SettingsPage selectedJobId={selectedJobId} theme={theme} setTheme={setTheme} />} />
             </Routes>
@@ -2120,7 +2120,7 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
   );
 }
 
-function ResultsPage({ jobs, selectedJobId, setSelectedJobId }) {
+function ResultsPage({ jobs, selectedJobId, setSelectedJobId, saveFeedback }) {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationResults = location.state?.ranking;
@@ -2128,9 +2128,12 @@ function ResultsPage({ jobs, selectedJobId, setSelectedJobId }) {
   const [results, setResults] = useState(Array.isArray(navigationResults) ? navigationResults : []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [savingDecision, setSavingDecision] = useState('');
+  const [notice, setNotice] = useState('');
+  const [selectedCandidateId, setSelectedCandidateId] = useState(location.state?.candidateId || '');
 
   useEffect(() => {
-    if (!jobId) return;
+    if (!jobId) return undefined;
     if (location.state?.jobId === jobId && Array.isArray(location.state?.ranking)) {
       return;
     }
@@ -2154,64 +2157,147 @@ function ResultsPage({ jobs, selectedJobId, setSelectedJobId }) {
     return () => { active = false; };
   }, [jobId, location.state]);
 
+  const evaluatedCandidates = jobId
+    ? results.filter((candidate) => candidate.analysis_status === 'analyzed' || candidate.score !== null && candidate.score !== undefined)
+    : [];
+  const selectedCandidate = evaluatedCandidates.find((candidate) => candidate.cv_id === selectedCandidateId) || evaluatedCandidates[0] || null;
+  const selectedJob = jobs.find((job) => job.job_id === jobId);
+  const matchedRequirements = selectedCandidate?.matched_requirements || [];
+  const missingRequirements = selectedCandidate?.missing_requirements || [];
+  const requiredSkills = selectedJob?.required_skills?.length
+    ? selectedJob.required_skills
+    : selectedJob?.rubric?.must_have || [];
+  const criteria = [
+    { label: 'Required skills', score: selectedCandidate?.details?.skills_score },
+    { label: 'Experience', score: selectedCandidate?.details?.experience_score },
+    { label: 'Qualifications', score: selectedCandidate?.details?.education_score },
+    { label: 'Communication', score: selectedCandidate?.details?.communication_score },
+  ];
+  const initials = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'C';
+  const formatUploadDate = (date) => date ? new Date(date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date unavailable';
+
+  const updateDecision = async (decision) => {
+    if (!selectedCandidate || savingDecision) return;
+    setSavingDecision(decision);
+    setError('');
+    setNotice('');
+    try {
+      await saveFeedback({
+        cv_id: selectedCandidate.cv_id,
+        job_id: jobId,
+        decision,
+        notes: decision === 'shortlist' ? 'Shortlisted from screening results' : 'Rejected from screening results',
+      });
+      setResults((current) => current.map((candidate) => candidate.cv_id === selectedCandidate.cv_id
+        ? { ...candidate, status: decision === 'shortlist' ? 'shortlisted' : 'rejected' }
+        : candidate));
+      setNotice(decision === 'shortlist' ? 'Candidate shortlisted.' : 'Candidate rejected.');
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Could not save the candidate decision.');
+    } finally {
+      setSavingDecision('');
+    }
+  };
+
   return (
-    <div className="app-page page-panel space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="app-page screening-results-page">
+      <header className="screening-results-heading">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">Completed evaluation</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900">Candidate Results</h2>
-          <p className="mt-1 text-sm text-slate-500">CV analysis and ranking based on the submitted job requirements.</p>
+          <p className="screening-results-eyebrow">Completed evaluation</p>
+          <h1>Screening results</h1>
+          <p>Each score shows the requirement it came from. Review, then decide.</p>
         </div>
-        <select value={jobId} onChange={(event) => {
-          const nextJobId = event.target.value;
-          setSelectedJobId(nextJobId);
+        <button type="button" className="screening-outline-button" onClick={() => navigate('/rankings', { state: { jobId } })}>Review full ranking</button>
+      </header>
+      <div className="screening-job-picker">
+        <label htmlFor="screening-job-select">Job</label>
+        <select id="screening-job-select" value={jobId} onChange={(event) => {
+          setSelectedJobId(event.target.value);
+          setSelectedCandidateId('');
           setError('');
-          if (location.state?.jobId === nextJobId && Array.isArray(location.state?.ranking)) {
-            setResults(location.state.ranking);
-          }
-        }} className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500">
+          setNotice('');
+        }} disabled={!jobs.length}>
+          {!jobs.length && <option value="">No jobs available</option>}
           {jobs.map((job) => <option key={job.job_id} value={job.job_id}>{job.title}</option>)}
         </select>
       </div>
 
-      {loading && <p role="status" className="text-sm text-slate-500">Loading saved evaluation results...</p>}
-      {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      {!loading && !error && results.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No completed candidate evaluations are available for this job.</p>}
+      {loading && <p role="status" className="screening-notice">Loading saved evaluation results…</p>}
+      {error && <p role="alert" className="screening-error">{error}</p>}
+      {notice && <p role="status" className="screening-success">{notice}</p>}
+      {!loading && !error && !jobs.length && <p className="screening-empty">Create a job before reviewing screening results.</p>}
+      {!loading && !error && jobs.length > 0 && evaluatedCandidates.length === 0 && <p className="screening-empty">No completed candidate evaluations are available for this job.</p>}
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {results.map((candidate) => (
-          <article key={candidate.cv_id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold text-slate-900">{candidate.candidate_name}</p>
-                <p className="mt-1 text-xs text-slate-500">{candidate.status === 'shortlisted' ? 'Shortlisted' : candidate.status === 'rejected' ? 'Rejected' : 'Pending decision'} · Rank #{candidate.rank}</p>
-                {candidate.email && candidate.email !== '-' && <p className="mt-1 text-xs text-slate-500">{candidate.email}</p>}
+      {selectedCandidate && !loading && <div className="screening-results-layout">
+        <aside className="screening-candidate-list" aria-label="Evaluated candidates">
+          <p>{evaluatedCandidates.length} evaluated</p>
+          {evaluatedCandidates.map((candidate) => (
+            <button key={candidate.cv_id} type="button" className="screening-candidate-option" aria-current={candidate.cv_id === selectedCandidate.cv_id ? 'true' : undefined} onClick={() => setSelectedCandidateId(candidate.cv_id)}>
+              <span className="screening-avatar">{initials(candidate.candidate_name)}</span>
+              <span className="screening-candidate-option-info"><strong>{candidate.candidate_name}</strong><small>{candidate.details?.experience_years ? `${candidate.details.experience_years} yrs` : candidate.city || 'Candidate'}</small></span>
+              <strong className={`screening-list-score ${Number(candidate.score) >= 70 ? 'is-good' : Number(candidate.score) >= 50 ? 'is-review' : 'is-low'}`}>{candidate.score ?? '—'}%</strong>
+            </button>
+          ))}
+        </aside>
+
+        <section className="screening-candidate-detail">
+          <article className="screening-profile-card">
+            <div className="screening-profile-header">
+              <span className="screening-avatar screening-avatar-large">{initials(selectedCandidate.candidate_name)}</span>
+              <div className="screening-profile-identity">
+                <h2>{selectedCandidate.candidate_name}</h2>
+                <p>{[selectedCandidate.email !== '-' ? selectedCandidate.email : '', selectedCandidate.phone, `CV uploaded ${formatUploadDate(selectedCandidate.uploaded_at)}`].filter(Boolean).join(' · ')}</p>
               </div>
-              <div className="rounded-lg bg-blue-50 px-3 py-2 text-right">
-                <p className="text-xl font-semibold text-blue-700">{candidate.score}<span className="text-xs font-normal text-slate-500">/100</span></p>
-                <p className="text-[10px] text-slate-500">match score</p>
-              </div>
+              <div className="screening-match-score"><strong>{selectedCandidate.score ?? '—'}%</strong><span>Match score</span></div>
             </div>
-            <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">{candidate.feedback}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              {[
-                ['Skills', candidate.details?.skills_score],
-                ['Experience', candidate.details?.experience_score],
-                ['Education', candidate.details?.education_score],
-                ['Communication', candidate.details?.communication_score],
-              ].map(([label, score]) => (
-                <div key={label} className="rounded-lg bg-indigo-50 px-3 py-2 text-slate-600">{label}<strong className="float-right text-slate-800">{score ?? '—'}{score !== undefined ? '%' : ''}</strong></div>
-              ))}
+            <div className="screening-profile-status">
+              <span className={`screening-status-pill is-${selectedCandidate.status === 'shortlisted' ? 'shortlisted' : selectedCandidate.status === 'rejected' ? 'rejected' : 'review'}`}>
+                {selectedCandidate.status === 'shortlisted' ? '✓ Shortlisted' : selectedCandidate.status === 'rejected' ? '× Rejected' : '• Needs review'}
+              </span>
+              {selectedCandidate.rank && <span>Rank {selectedCandidate.rank} of {evaluatedCandidates.length}</span>}
             </div>
-            <div className="mt-3 text-xs leading-5 text-slate-600">
-              <p><strong className="text-emerald-700">Matched:</strong> {candidate.matched_requirements?.join(', ') || 'No explicit requirement match recorded'}</p>
-              <p className="mt-1"><strong className="text-amber-700">Gaps:</strong> {candidate.missing_requirements?.join(', ') || 'No identified requirement gaps'}</p>
+            <div className="screening-score-breakdown">
+              <p className="screening-results-eyebrow">Score breakdown</p>
+              {criteria.map(({ label, score }) => {
+                const normalizedScore = Number.isFinite(Number(score)) ? Math.max(0, Math.min(100, Number(score))) : null;
+                return <div className="screening-criterion" key={label}>
+                  <strong>{label}</strong>
+                  <span className="screening-score-track"><span className={normalizedScore !== null && normalizedScore < 70 ? 'is-review' : ''} style={{ width: `${normalizedScore ?? 0}%` }} /></span>
+                  <small>{normalizedScore === null ? '—' : `${normalizedScore}%`}</small>
+                </div>;
+              })}
             </div>
-            <button type="button" onClick={() => navigate('/interview-questions', { state: { jobId, candidateId: candidate.cv_id } })} className="mt-4 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">View interview questions</button>
           </article>
-        ))}
-      </div>
-      <button type="button" onClick={() => navigate('/rankings')} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Review full ranking</button>
+
+          <div className="screening-detail-cards">
+            <article className="screening-summary-card">
+              <p className="screening-results-eyebrow">✦ AI summary</p>
+              <p>{selectedCandidate.feedback || 'No evaluation summary was returned for this candidate.'}</p>
+              <small>Based on submitted CV text and job criteria. Verify evidence before deciding.</small>
+            </article>
+            <article className="screening-skills-card">
+              <p className="screening-results-eyebrow">Required skills</p>
+              <div className="screening-skill-tags">
+                {matchedRequirements.map((requirement) => <span className="is-matched" key={`matched-${requirement}`}>{requirement}</span>)}
+                {missingRequirements.map((requirement) => <span className="is-missing" key={`missing-${requirement}`}>Missing: {requirement}</span>)}
+                {!matchedRequirements.length && !missingRequirements.length && requiredSkills.map((skill) => <span className="is-neutral" key={skill}>{skill}</span>)}
+                {!matchedRequirements.length && !missingRequirements.length && !requiredSkills.length && <small>No skill requirement details are available.</small>}
+              </div>
+            </article>
+          </div>
+
+          <div className="screening-decision-card">
+            <div className="screening-decision-title">Your decision</div>
+            <div className="screening-decision-actions">
+              {selectedCandidate.documents?.cv?.url && <a className="screening-view-cv" href={resolveApiAssetUrl(selectedCandidate.documents.cv.url)} target="_blank" rel="noreferrer">View CV</a>}
+              <button type="button" className="screening-reject-button" onClick={() => updateDecision('reject')} disabled={Boolean(savingDecision) || selectedCandidate.status === 'rejected'}>{savingDecision === 'reject' ? 'Saving…' : 'Reject'}</button>
+              <button type="button" className="screening-outline-button" onClick={() => setNotice(selectedCandidate.status === 'pending_decision' ? 'Candidate remains in the review queue; no decision was changed.' : 'The existing candidate decision was left unchanged.')} disabled={Boolean(savingDecision)}>{selectedCandidate.status === 'pending_decision' ? 'Needs review' : 'Keep current decision'}</button>
+              <button type="button" className="screening-primary-button" onClick={() => updateDecision('shortlist')} disabled={Boolean(savingDecision) || selectedCandidate.status === 'shortlisted'}>{savingDecision === 'shortlist' ? 'Saving…' : 'Shortlist candidate'}</button>
+            </div>
+          </div>
+          <button type="button" className="screening-interview-link" onClick={() => navigate('/interview-questions', { state: { jobId, candidateId: selectedCandidate.cv_id } })}>View interview questions</button>
+        </section>
+      </div>}
     </div>
   );
 }
