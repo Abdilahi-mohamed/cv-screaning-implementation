@@ -7305,6 +7305,228 @@ button { cursor: pointer; }
   }
 }
 
+.owner-settings-content {
+  width: min(960px, 100%);
+}
+
+.owner-system-settings {
+  max-width: 720px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.owner-system-settings .owner-panel-heading {
+  min-height: 69px;
+  padding: 15px 19px;
+}
+
+.owner-system-settings .owner-panel-heading h2 {
+  font-size: 15px;
+}
+
+.owner-system-settings .owner-panel-heading p {
+  font-size: 10px;
+}
+
+.owner-system-settings .owner-settings-form {
+  padding: 0;
+}
+
+.owner-system-settings .owner-setting-row {
+  min-height: 68px;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #e2e5ee;
+  padding: 15px 19px;
+}
+
+.owner-system-settings .owner-setting-row > span:first-child,
+.owner-system-settings .owner-setting-row > div:first-child {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.owner-system-settings .owner-setting-row strong,
+.owner-system-settings .owner-setting-row > div:first-child > strong {
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.owner-system-settings .owner-setting-row small,
+.owner-system-settings .owner-setting-row > div:first-child > small {
+  color: #64748b;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.owner-system-settings .owner-setting-switch {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  flex: 0 0 40px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #8a93a8;
+  cursor: pointer;
+  margin: 0;
+  transition: background .15s ease;
+}
+
+.owner-system-settings .owner-setting-switch::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  content: '';
+  transition: transform .15s ease;
+}
+
+.owner-system-settings .owner-setting-switch:checked {
+  background: #2f2dd6;
+}
+
+.owner-system-settings .owner-setting-switch:checked::after {
+  transform: translateX(16px);
+}
+
+.owner-system-settings .owner-setting-switch:focus-visible {
+  outline: 2px solid #2f2dd6;
+  outline-offset: 3px;
+}
+
+.owner-color-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.owner-color-swatches {
+  display: flex;
+  gap: 8px;
+}
+
+.owner-color-swatches button {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #e2e5ee;
+  cursor: pointer;
+  padding: 0;
+}
+
+.owner-color-swatches button[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px #0f172a;
+}
+
+.owner-color-hex,
+.owner-setting-select {
+  height: 36px;
+  border: 1px solid #aeb8c9;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 10px;
+  color: #334155;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.owner-color-hex {
+  width: 98px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.owner-color-hex[aria-invalid='true'] {
+  border-color: #b91c1c;
+}
+
+.owner-color-hex:focus-visible,
+.owner-setting-select:focus-visible {
+  outline: 3px solid rgba(47, 45, 214, .18);
+  outline-offset: 1px;
+}
+
+.owner-setting-select {
+  width: 110px;
+  flex: 0 0 auto;
+}
+
+.owner-system-settings .owner-settings-actions {
+  min-height: 58px;
+  border-radius: 0 0 14px 14px;
+  background: #f7f8fc;
+  padding: 10px 19px;
+}
+
+.owner-system-settings .owner-settings-actions > p {
+  color: #64748b;
+  font-size: 9px;
+}
+
+.owner-system-settings .owner-settings-actions > div {
+  display: flex;
+  gap: 8px;
+}
+
+.owner-system-settings .owner-settings-actions .owner-secondary-button,
+.owner-system-settings .owner-settings-actions .owner-primary-button {
+  min-height: 34px;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.owner-system-settings .owner-settings-actions .owner-primary-button {
+  width: auto;
+}
+
+.owner-system-settings .owner-settings-actions .owner-secondary-button {
+  border-color: #aeb8c9;
+}
+
+.owner-system-settings .owner-settings-actions button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+@media (max-width: 560px) {
+  .owner-system-settings .owner-setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 11px;
+    padding: 14px;
+  }
+
+  .owner-system-settings .owner-setting-switch {
+    align-self: flex-end;
+    margin-top: -35px;
+  }
+
+  .owner-color-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .owner-system-settings .owner-settings-actions {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+
+  .owner-system-settings .owner-settings-actions > div {
+    justify-content: flex-end;
+  }
+}
+
 .owner-delete-modal {
   width: min(440px, 100%);
   padding: 20px;

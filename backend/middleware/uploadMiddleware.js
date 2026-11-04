@@ -2,6 +2,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
+const SystemSetting = require('../models/SystemSetting');
 
 const uploadDirectory = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadDirectory)) {
@@ -24,10 +26,10 @@ const allowedImages = {
   '.gif': 'image/gif',
 };
 
-const createUpload = ({ allowCustomImages = false } = {}) => multer({
+const createUpload = ({ allowCustomImages = false, maxFileSizeMb = 10 } = {}) => multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: maxFileSizeMb * 1024 * 1024,
     files: 20,
   },
   fileFilter: (req, file, cb) => {
@@ -50,7 +52,24 @@ const createUpload = ({ allowCustomImages = false } = {}) => multer({
   },
 });
 
-const upload = createUpload();
-upload.application = createUpload({ allowCustomImages: true });
+const getUploadMiddleware = (method, args, options) => (req, res, next) => {
+  const createRequestMiddleware = async () => {
+    let maxFileSizeMb = 10;
+    if (mongoose.connection.readyState === 1) {
+      const settings = await SystemSetting.findOne({ key: 'platform' }).select('max_cv_file_size_mb').lean();
+      maxFileSizeMb = settings?.max_cv_file_size_mb || maxFileSizeMb;
+    }
+    createUpload({ ...options, maxFileSizeMb })[method](...args)(req, res, next);
+  };
+  createRequestMiddleware().catch(next);
+};
+
+const createUploadRouter = (options = {}) => ({
+  array: (field, maxCount) => getUploadMiddleware('array', [field, maxCount], options),
+  any: () => getUploadMiddleware('any', [], options),
+});
+
+const upload = createUploadRouter();
+upload.application = createUploadRouter({ allowCustomImages: true });
 
 module.exports = upload;

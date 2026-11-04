@@ -5,10 +5,14 @@ const notFound = (req, res, next) => {
 };
 
 const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  const statusCode = err.code === 'LIMIT_FILE_SIZE'
+    ? 413
+    : res.statusCode === 200 ? 500 : res.statusCode;
 
   res.status(statusCode).json({
-    message: err.message || 'Internal Server Error',
+    message: err.code === 'LIMIT_FILE_SIZE'
+      ? 'The uploaded file exceeds the current size limit.'
+      : err.message || 'Internal Server Error',
     stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
   });
 };

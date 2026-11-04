@@ -24,6 +24,9 @@ const saveFeedback = async (req, res) => {
     if (!cv) {
       return res.status(404).json({ message: 'CV not found.' });
     }
+    if (cv.anonymized_at || cv.retention_cleanup_started_at) {
+      return res.status(409).json({ message: 'This rejected application is being anonymized and can no longer be changed.' });
+    }
 
     const feedbackId = generateId('fb');
     const payload = {
@@ -44,8 +47,14 @@ const saveFeedback = async (req, res) => {
     }
 
     await Feedback.create(payload);
-    cv.status = decision === 'shortlist' ? 'shortlisted' : 'rejected';
-    await cv.save();
+    const statusUpdate = await CV.updateOne(
+      { cv_id, job_id, anonymized_at: null, retention_cleanup_started_at: null },
+      { $set: { status: decision === 'shortlist' ? 'shortlisted' : 'rejected' } },
+    );
+    if (!statusUpdate.matchedCount) {
+      await Feedback.deleteOne({ feedback_id: feedbackId });
+      return res.status(409).json({ message: 'This rejected application is being anonymized and can no longer be changed.' });
+    }
 
     return res.status(201).json({ status: 'saved', decision });
   } catch (error) {
