@@ -65,6 +65,8 @@ function OwnerWorkspace({ user, onLogout }) {
   const [notice, setNotice] = useState('');
   const [query, setQuery] = useState('');
   const [companyStatusFilter, setCompanyStatusFilter] = useState('all');
+  const [userSearch, setUserSearch] = useState('');
+  const [userCompanyFilter, setUserCompanyFilter] = useState('all');
   const [modalCompany, setModalCompany] = useState(null);
   const [pendingDeleteCompany, setPendingDeleteCompany] = useState(null);
 
@@ -96,6 +98,13 @@ function OwnerWorkspace({ user, onLogout }) {
     const matchesStatus = companyStatusFilter === 'all' || company.status === companyStatusFilter;
     return matchesQuery && matchesStatus;
   }), [activeCompanies, companyStatusFilter, query]);
+  const visibleHrCompanies = useMemo(() => activeCompanies.filter((company) => {
+    if (!company.hr_user) return false;
+    const matchesSearch = `${company.hr_user.name || ''} ${company.hr_user.username || ''} ${company.hr_user.email || ''} ${company.name}`
+      .toLowerCase()
+      .includes(userSearch.trim().toLowerCase());
+    return matchesSearch && (userCompanyFilter === 'all' || company.company_id === userCompanyFilter);
+  }), [activeCompanies, userCompanyFilter, userSearch]);
 
   const logout = async () => {
     try {
@@ -241,7 +250,7 @@ function OwnerWorkspace({ user, onLogout }) {
               {section === 'companies' && (
                 <CompanyList companies={visibleCompanies} query={query} onQuery={setQuery} statusFilter={companyStatusFilter} onStatusFilter={setCompanyStatusFilter} onEdit={setModalCompany} onToggle={updateCompanyStatus} onDelete={setPendingDeleteCompany} />
               )}
-              {section === 'users' && <UserList companies={activeCompanies} onEdit={setModalCompany} />}
+              {section === 'users' && <UserList companies={visibleHrCompanies} allCompanies={activeCompanies} query={userSearch} onQuery={setUserSearch} companyFilter={userCompanyFilter} onCompanyFilter={setUserCompanyFilter} onEdit={setModalCompany} />}
               {section === 'activity' && <ActivityList companies={activeCompanies} />}
               {section === 'settings' && <SystemSettingsForm settings={settings} onChange={setSettings} onSave={saveSettings} saving={savingSettings} />}
             </>
@@ -338,21 +347,53 @@ function CompanyList({ companies, query, onQuery, statusFilter, onStatusFilter, 
   );
 }
 
-function UserList({ companies, onEdit }) {
+function UserList({ companies, allCompanies, query, onQuery, companyFilter, onCompanyFilter, onEdit }) {
   return (
-    <section className="owner-panel">
-      <div className="owner-panel-heading"><div><h2>Company HR accounts</h2><p>Each company has its own assigned HR account and permission set.</p></div></div>
-      <div className="owner-table-wrap"><table className="owner-table">
-        <thead><tr><th>HR user</th><th>Company</th><th>Access</th><th>Last active</th><th /></tr></thead>
-        <tbody>{companies.map((company) => (
-          <tr key={company.company_id}>
-            <td><span className="owner-user-cell"><strong>{company.hr_user?.name || company.hr_user?.username || 'No HR user'}</strong><small>{company.hr_user?.username || ''}</small></span></td>
-            <td>{company.name}</td><td><StatusBadge status={company.hr_user?.active ? 'active' : 'suspended'} /></td><td>{timeLabel(company.hr_user?.last_active_at || company.hr_user?.last_login_at)}</td>
-            <td><button type="button" className="owner-row-action" onClick={() => onEdit(company)}>Manage access</button></td>
-          </tr>
-        ))}</tbody>
-      </table>{!companies.length && <p className="owner-empty">No company HR accounts yet.</p>}</div>
-    </section>
+    <div className="owner-users-content">
+      <section className="owner-panel owner-user-directory">
+        <div className="owner-panel-heading owner-list-heading">
+          <div><h2>Company HR accounts</h2><p>Each company has its own HR account and permission set.</p></div>
+          <div className="owner-user-filters">
+            <label className="owner-search"><Search size={16} aria-hidden="true" /><input type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search by name or company" aria-label="Search HR users by name or company" /></label>
+            <select className="owner-company-filter" value={companyFilter} onChange={(event) => onCompanyFilter(event.target.value)} aria-label="Filter HR users by company">
+              <option value="all">All companies</option>
+              {allCompanies.map((company) => <option value={company.company_id} key={company.company_id}>{company.name}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="owner-table-wrap">
+          <table className="owner-table">
+            <thead><tr><th>HR user</th><th>Company</th><th>Role</th><th>Access</th><th>Last active</th><th className="owner-user-actions-heading"><span className="owner-visually-hidden">Actions</span></th></tr></thead>
+            <tbody>{companies.length ? companies.map((company) => {
+              const { hr_user: hrUser } = company;
+              const permissions = hrUser.permissions || [];
+              const hasAllPermissions = PERMISSION_OPTIONS.every((permission) => permissions.includes(permission.value));
+              const isRecruiter = permissions.includes('jobs:manage')
+                && permissions.includes('candidates:manage')
+                && !permissions.includes('settings:manage');
+              const role = hasAllPermissions ? 'Workspace owner' : isRecruiter ? 'Recruiter' : permissions.length ? 'Custom access' : 'No permissions';
+              const lastActive = hrUser.last_active_at || hrUser.last_login_at;
+              return (
+                <tr key={company.company_id}>
+                  <td><span className="owner-user-cell owner-hr-user-cell"><span className="owner-hr-avatar">{(hrUser.name || hrUser.username || '?').slice(0, 2).toUpperCase()}</span><span><strong>{hrUser.name || hrUser.username}</strong><small>{hrUser.username}</small></span></span></td>
+                  <td className="owner-hr-company">{company.name}</td>
+                  <td><span className="owner-hr-role">{role}</span></td>
+                  <td><HrAccessBadge active={hrUser.active} /></td>
+                  <td className="owner-hr-last-active">{lastActive ? timeLabel(lastActive) : 'Never signed in'}</td>
+                  <td><button type="button" className="owner-row-action" onClick={() => onEdit(company)}>Manage access</button></td>
+                </tr>
+              );
+            }) : <tr><td className="owner-company-empty" colSpan="6">{allCompanies.length ? 'No HR users match your search or company filter.' : 'No company HR accounts yet.'}</td></tr>}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="owner-role-guide" aria-label="HR access roles">
+        <article><h2>Workspace owner</h2><p>Manages jobs, candidate screening, exports and company settings.</p></article>
+        <article><h2>Recruiter</h2><p>Manages jobs and reviews candidates but cannot change workspace settings.</p></article>
+        <article><h2>Disabled</h2><p>Cannot sign in. Past decisions remain in the audit trail.</p></article>
+      </section>
+    </div>
   );
 }
 
@@ -479,6 +520,11 @@ function StatusBadge({ status }) {
   const label = status === 'active' ? 'Active' : status === 'deleted' ? 'Deleted' : 'Suspended';
   const Icon = status === 'active' ? CircleCheck : status === 'deleted' ? CircleAlert : Pause;
   return <span className={`owner-status-badge ${status === 'active' ? 'is-active' : status === 'deleted' ? 'is-deleted' : 'is-suspended'}`}><Icon size={13} aria-hidden="true" />{label}</span>;
+}
+
+function HrAccessBadge({ active }) {
+  const Icon = active ? CircleCheck : Pause;
+  return <span className={`owner-hr-access ${active ? 'is-active' : 'is-disabled'}`}><Icon size={13} aria-hidden="true" />{active ? 'Active' : 'Disabled'}</span>;
 }
 
 export default OwnerDashboard;
