@@ -46,6 +46,7 @@ const initializeOwner = async () => {
     username,
     name: 'System owner',
     role: 'owner',
+    is_primary_owner: true,
     password_hash: await hashPassword(password),
     permissions: ['system:manage'],
   });

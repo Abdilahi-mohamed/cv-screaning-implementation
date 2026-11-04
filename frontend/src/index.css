@@ -1724,6 +1724,13 @@ button { cursor: pointer; }
   line-height: 1.5;
 }
 
+.auth-success {
+  margin: 3px 0;
+  color: #26734d;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
 .auth-footnote {
   display: flex;
   align-items: center;

@@ -165,6 +165,7 @@ const setupOwner = async (req, res, next) => {
       username,
       name: 'System owner',
       role: 'owner',
+      is_primary_owner: true,
       password_hash: await hashPassword(password),
       permissions: ['system:manage'],
     });
@@ -193,12 +194,60 @@ const setupOwner = async (req, res, next) => {
   }
 };
 
+const registerOwner = async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'Super Admin registration requires the configured database.' });
+    }
+
+    const username = typeof req.body?.username === 'string' ? req.body.username.trim().toLowerCase() : '';
+    const password = req.body?.password;
+    if (!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)) {
+      return res.status(400).json({ message: 'Username must be 3–40 characters using letters, numbers, dots, underscores, or hyphens.' });
+    }
+    if (typeof password !== 'string' || password.length < 6 || password.length > 256) {
+      return res.status(400).json({ message: 'Password must be between 6 and 256 characters.' });
+    }
+
+    const user = await User.create({
+      username,
+      name: username,
+      role: 'owner',
+      password_hash: await hashPassword(password),
+      permissions: ['system:manage'],
+    });
+    const { token, expiresAt } = await createSession(user);
+    user.last_login_at = new Date();
+    user.last_active_at = new Date();
+    await user.save();
+    setSessionCookie(res, token, expiresAt, 'owner');
+    clearSessionCookie(res, 'hr');
+    return res.status(201).json({
+      user: {
+        username: user.username,
+        name: user.name,
+        role: user.role,
+        company_id: null,
+        company_name: '',
+        permissions: user.permissions,
+      },
+      expires_at: expiresAt,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: 'That username is already assigned to another account.' });
+    }
+    return next(error);
+  }
+};
+
 module.exports = {
   currentOwner: currentUser('owner'),
   currentHR: currentUser('hr'),
   loginAny: login(),
   logoutHR: logout('hr'),
   logoutOwner: logout('owner'),
+  registerOwner,
   ownerSetupStatus,
   setupOwner,
 };
