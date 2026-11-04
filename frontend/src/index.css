@@ -7541,6 +7541,155 @@ button { cursor: pointer; }
   font-size: 10px;
   font-weight: 600;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-activity-page {
+  display: grid;
+  gap: 14px;
+}
+
+.owner-activity-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.owner-activity-toolbar label {
+  display: grid;
+  gap: 5px;
+  color: #475569;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.owner-activity-toolbar select {
+  width: 190px;
+  height: 36px;
+  border: 1px solid #aeb8c9;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 10px;
+  color: #0f172a;
+  font: inherit;
+  font-size: 10px;
+}
+
+.owner-activity-toolbar select:focus-visible {
+  outline: 3px solid rgba(47, 45, 214, .18);
+  outline-offset: 1px;
+}
+
+.owner-activity-toolbar .owner-secondary-button {
+  min-height: 36px;
+  border-color: #aeb8c9;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.owner-activity-toolbar .owner-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.owner-activity-panel .owner-panel-heading {
+  min-height: 69px;
+}
+
+.owner-activity-day {
+  margin: 0;
+  border-bottom: 1px solid #e2e5ee;
+  background: #f7f8fc;
+  padding: 9px 18px;
+  color: #475569;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.owner-activity-list {
+  padding: 0 18px;
+}
+
+.owner-activity-row {
+  min-height: 67px;
+  gap: 12px;
+  border-bottom-color: #e2e5ee;
+  padding: 12px 2px;
+}
+
+.owner-activity-row > div {
+  min-width: 0;
+  gap: 3px;
+}
+
+.owner-activity-row strong {
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.owner-activity-row strong span,
+.owner-activity-row small,
+.owner-activity-row time {
+  color: #64748b;
+  font-size: 9px;
+}
+
+.owner-activity-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-activity-row time {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.owner-activity-note {
+  margin: 0;
+  border-top: 1px solid #e2e5ee;
+  background: #f7f8fc;
+  padding: 11px 18px;
+  color: #64748b;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  .owner-activity-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .owner-activity-toolbar select {
+    width: 100%;
+  }
+
+  .owner-activity-toolbar .owner-secondary-button {
+    justify-content: center;
+  }
+
+  .owner-activity-list {
+    padding: 0 12px;
+  }
+
+  .owner-activity-row {
+    align-items: flex-start;
+  }
+
+  .owner-activity-row time {
+    margin-left: 46px;
+  }
+
+  .owner-activity-note {
+    padding: 11px 13px;
+  }
 }
 
 .owner-hr-user-cell small {
