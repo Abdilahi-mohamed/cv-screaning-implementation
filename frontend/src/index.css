@@ -7074,3 +7074,344 @@ button { cursor: pointer; }
     padding-left: 10px;
   }
 }
+
+.owner-company-directory .owner-list-heading {
+  min-height: 72px;
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+}
+
+.owner-company-filters {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.owner-company-directory .owner-search {
+  min-width: 240px;
+  height: 36px;
+  gap: 8px;
+  border-color: #aeb8c9;
+  border-radius: 8px;
+  padding: 0 9px;
+  color: #64748b;
+}
+
+.owner-company-directory .owner-search input {
+  min-height: 34px;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.owner-company-directory .owner-search input::placeholder {
+  color: #64748b;
+}
+
+.owner-status-filter {
+  height: 36px;
+  min-width: 105px;
+  border: 1px solid #aeb8c9;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 10px;
+  color: #334155;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.owner-status-filter:focus-visible,
+.owner-company-directory .owner-search:focus-within {
+  outline: 3px solid rgba(47, 45, 214, .18);
+  outline-offset: 1px;
+}
+
+.owner-company-directory .owner-table {
+  min-width: 850px;
+  table-layout: auto;
+}
+
+.owner-company-directory .owner-table th {
+  height: 37px;
+  padding: 9px 13px;
+}
+
+.owner-company-directory .owner-table th:first-child,
+.owner-company-directory .owner-table td:first-child {
+  padding-left: 18px;
+}
+
+.owner-company-directory .owner-table th:last-child,
+.owner-company-directory .owner-table td:last-child {
+  padding-right: 18px;
+  text-align: right;
+}
+
+.owner-company-directory .owner-table td {
+  height: 72px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+  border-top: 1px solid #e2e5ee;
+  font-size: 10px;
+}
+
+.owner-company-directory .owner-company-cell {
+  gap: 9px;
+}
+
+.owner-company-directory .owner-company-initial {
+  width: 31px;
+  height: 31px;
+  flex-basis: 31px;
+}
+
+.owner-company-directory .owner-company-cell strong,
+.owner-company-directory .owner-user-cell strong {
+  font-size: 10px;
+}
+
+.owner-company-directory .owner-company-id {
+  max-width: 128px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  text-overflow: ellipsis;
+}
+
+.owner-company-directory .owner-user-cell small {
+  font-size: 9px;
+}
+
+.owner-workspace-cell {
+  max-width: 150px;
+  color: #64748b !important;
+  font-size: 9px !important;
+  white-space: normal;
+}
+
+.owner-company-date {
+  color: #64748b !important;
+  font-size: 9px !important;
+  white-space: normal;
+}
+
+.owner-company-directory .owner-status-badge {
+  gap: 5px;
+  padding: 5px 9px;
+  font-size: 9px;
+}
+
+.owner-company-directory .owner-status-badge svg {
+  flex: 0 0 auto;
+}
+
+.owner-company-directory .owner-status-badge.is-active {
+  background: #e7f5ef;
+  color: #047857;
+}
+
+.owner-company-directory .owner-status-badge.is-suspended {
+  background: #fdf3e4;
+  color: #b45309;
+}
+
+.owner-company-directory .owner-status-badge.is-deleted {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.owner-company-directory .owner-actions {
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.owner-company-directory .owner-row-action {
+  padding: 5px 5px;
+  font-family: inherit;
+  font-size: 9px;
+}
+
+.owner-company-directory .owner-row-action:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+.owner-company-directory .owner-row-action.is-warning {
+  color: #b45309;
+}
+
+.owner-company-directory .owner-row-action.is-success {
+  color: #047857;
+}
+
+.owner-company-directory .owner-row-action.is-danger {
+  color: #b91c1c;
+}
+
+.owner-company-empty {
+  padding: 28px 18px !important;
+  color: #64748b !important;
+  font-size: 11px !important;
+  text-align: center;
+}
+
+.owner-company-table-note {
+  margin: 0;
+  padding: 11px 18px;
+  border-top: 1px solid #e2e5ee;
+  background: #f7f8fc;
+  color: #64748b;
+  font-size: 9px;
+}
+
+@media (max-width: 860px) {
+  .owner-company-directory .owner-list-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .owner-company-filters {
+    width: 100%;
+  }
+
+  .owner-company-directory .owner-search {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .owner-company-directory .owner-table {
+    min-width: 850px;
+  }
+}
+
+@media (max-width: 560px) {
+  .owner-company-filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .owner-status-filter {
+    width: 100%;
+  }
+
+  .owner-company-directory .owner-list-heading {
+    padding: 13px;
+  }
+
+  .owner-company-table-note {
+    padding: 11px 13px;
+  }
+}
+
+.owner-delete-modal {
+  width: min(440px, 100%);
+  padding: 20px;
+  border-color: #e2e5ee;
+  border-radius: 15px;
+  background: #fff;
+  color: #0f172a;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+.owner-delete-modal .owner-modal-heading {
+  align-items: center;
+  border: 0;
+  padding: 0;
+}
+
+.owner-delete-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.owner-modal-close {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid #e2e5ee;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+}
+
+.owner-modal-close:hover {
+  background: #f7f8fc;
+}
+
+.owner-delete-modal > h2 {
+  margin: 16px 0 5px;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.owner-delete-modal > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.owner-delete-modal form {
+  display: grid;
+  gap: 7px;
+  margin-top: 17px;
+}
+
+.owner-delete-modal form > label {
+  color: #334155;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.owner-delete-modal form > input {
+  width: 100%;
+  min-height: 39px;
+  border: 1px solid #aeb8c9;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 10px;
+  color: #0f172a;
+  font: inherit;
+  font-size: 11px;
+}
+
+.owner-delete-modal form > input:focus {
+  border-color: #2f2dd6;
+  outline: 3px solid rgba(47, 45, 214, .15);
+}
+
+.owner-delete-modal .owner-modal-actions {
+  margin-top: 8px;
+  border-color: #e2e5ee;
+}
+
+.owner-danger-button {
+  min-height: 37px;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  background: #b91c1c;
+  padding: 0 13px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.owner-danger-button:hover:not(:disabled) {
+  border-color: #991b1b;
+  background: #991b1b;
+}
+
+.owner-danger-button:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+}
