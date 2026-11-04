@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Archive, BriefcaseBusiness, CalendarDays, ClipboardCheck, Download, ExternalLink, LayoutDashboard, Link2, Plus, Printer, Search, Settings as SettingsIcon, Sparkles, Users } from 'lucide-react';
+import { Archive, BriefcaseBusiness, CalendarDays, CircleCheck, CircleDashed, CircleX, ClipboardCheck, Clock3, Download, ExternalLink, LayoutDashboard, Link2, Plus, Printer, Search, Settings as SettingsIcon, Sparkles, Upload, Users } from 'lucide-react';
 import LoginPage from './LoginPage.jsx';
 import LandingPage from './LandingPage.jsx';
 import OwnerDashboard from './OwnerDashboard.jsx';
@@ -311,7 +311,7 @@ function AppShell({ theme, setTheme, user, onLogout }) {
       <header className="app-header sticky top-0 z-40">
         <div className="app-header-main mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="app-logo flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-slate-900">CV</div>
+            <div className="app-logo flex h-10 w-10 shrink-0 items-center justify-center rounded-[5px] text-xl font-extrabold text-white">CV</div>
             <div className="min-w-0">
               <p className="text-lg font-semibold leading-none text-slate-900">TalentPulse</p>
               <p className="mt-1 truncate text-xs text-slate-500">{user.company_name || 'Company HR workspace'}</p>
@@ -516,6 +516,8 @@ function NewJobPage({ createJob }) {
   const [niceToHave, setNiceToHave] = useState([]);
   const [weights, setWeights] = useState({ skills: 40, experience: 30, education: 15, communication: 15 });
   const [cvFiles, setCvFiles] = useState([]);
+  const [cvSelectionError, setCvSelectionError] = useState('');
+  const cvFilesInputRef = useRef(null);
   const [roleImage, setRoleImage] = useState(null);
   const [roleImagePreview, setRoleImagePreview] = useState('');
   const [formError, setFormError] = useState('');
@@ -532,9 +534,22 @@ function NewJobPage({ createJob }) {
   };
 
   const parseRequirements = (value) => value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
+  const selectCvFiles = (files) => {
+    const selectedFiles = Array.from(files || []);
+    if (selectedFiles.length > 20) {
+      setCvSelectionError('Select no more than 20 CV files at a time.');
+      return;
+    }
+    setCvFiles(selectedFiles);
+    setCvSelectionError('');
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (cvSelectionError) {
+      setFormError(cvSelectionError);
+      return;
+    }
     const requiredSkills = mustHave.map((skill) => skill.trim()).filter(Boolean);
     if (!title.trim() || !responsibilities.trim() || !requiredSkills.length || !cvFiles.length) {
       setFormError('Enter the job title, responsibilities, at least one required skill, and upload at least one CV.');
@@ -575,7 +590,7 @@ function NewJobPage({ createJob }) {
   };
 
   return (
-    <div className="app-page page-panel rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="app-page cv-upload-page page-panel rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-6">
         <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Evaluation setup</span>
         <h2 className="mt-3 text-2xl font-bold text-slate-900">Job Requirements</h2>
@@ -661,18 +676,26 @@ function NewJobPage({ createJob }) {
           </label>
         </div>
 
-        <label className="block text-sm font-medium text-slate-700">
-          Candidate CVs
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            multiple
-            required
-            onChange={(event) => setCvFiles(Array.from(event.target.files || []))}
-            className="mt-1 block w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm file:mr-4 file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:font-semibold file:text-blue-700"
-          />
-          <span className="mt-1 block text-xs text-slate-500">Upload one or more text-readable PDF or Word CVs, within the system-configured file-size limit.</span>
-        </label>
+        <div className="job-builder-cv-upload">
+          <span className="job-builder-cv-label">Candidate CVs</span>
+          <label className="job-builder-cv-drop" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); selectCvFiles(event.dataTransfer.files); }}>
+            <input
+              ref={cvFilesInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              multiple
+              aria-label="Candidate CVs"
+              onChange={(event) => selectCvFiles(event.target.files)}
+            />
+            <span className="job-builder-cv-icon"><Upload size={20} aria-hidden="true" /></span>
+            <span className="job-builder-cv-title">{cvFiles.length ? `${cvFiles.length} CV${cvFiles.length === 1 ? '' : 's'} selected` : <>Drop CVs here or <strong>browse files</strong></>}</span>
+            <small>PDF, DOC, or DOCX · 20 files max · file-size limit set by your system owner</small>
+          </label>
+          {cvSelectionError && <p className="job-builder-alert is-error" role="alert">{cvSelectionError}</p>}
+          {cvFiles.length > 0 && <ul className="job-builder-cv-list" aria-label="Selected CV files">{cvFiles.map((file, index) => (
+            <li key={`${file.name}-${file.lastModified}-${index}`}><span>{file.name} · {(file.size / (1024 * 1024)).toFixed(1)} MB</span><button type="button" aria-label={`Remove ${file.name}`} onClick={() => { cvFilesInputRef.current.value = ''; setCvFiles((current) => current.filter((_, fileIndex) => fileIndex !== index)); }}>×</button></li>
+          ))}</ul>}
+        </div>
 
         <div>
           <h3 className="mb-3 text-lg font-semibold text-slate-900">Evaluation weights</h3>
@@ -1898,7 +1921,7 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
                   </button></td>
                   <td>{score === null ? <span className="rankings-unscored">Not scored yet</span> : <span className="rankings-match"><strong className={score >= 75 ? 'is-good' : score >= 50 ? 'is-review' : 'is-low'}>{score}%</strong><span className="rankings-score-bar"><span className={score >= 75 ? 'is-good' : score >= 50 ? 'is-review' : 'is-low'} style={{ width: `${score}%` }} /></span></span>}</td>
                   <td>{skillsTotal ? `${matchedCount} of ${skillsTotal}` : '—'}</td>
-                  <td><span className={`rankings-status-pill is-${status}`}>{status === 'shortlisted' ? '✓ Shortlisted' : status === 'rejected' ? '× Rejected' : status === 'review' ? '◷ Needs review' : '◌ Pending'}</span></td>
+                  <td><span className={`rankings-status-pill is-${status}`}>{status === 'shortlisted' ? <><CircleCheck size={15} aria-hidden="true" />Shortlisted</> : status === 'rejected' ? <><CircleX size={15} aria-hidden="true" />Rejected</> : status === 'review' ? <><Clock3 size={15} aria-hidden="true" />Needs review</> : <><CircleDashed size={15} aria-hidden="true" />Pending</>}</span></td>
                   <td className="rankings-upload-date">{candidate.uploaded_at ? new Date(candidate.uploaded_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</td>
                   <td><button type="button" className="rankings-view-button" onClick={() => { selectCandidate(candidate.cv_id); setShowCandidateWorkspace(true); setActiveDocumentType(''); }}>View</button></td>
                 </tr>;
@@ -2324,7 +2347,7 @@ function ResultsPage({ jobs, selectedJobId, setSelectedJobId, saveFeedback }) {
             </div>
             <div className="screening-profile-status">
               <span className={`screening-status-pill is-${selectedCandidate.status === 'shortlisted' ? 'shortlisted' : selectedCandidate.status === 'rejected' ? 'rejected' : 'review'}`}>
-                {selectedCandidate.status === 'shortlisted' ? '✓ Shortlisted' : selectedCandidate.status === 'rejected' ? '× Rejected' : '• Needs review'}
+                {selectedCandidate.status === 'shortlisted' ? <><CircleCheck size={15} aria-hidden="true" />Shortlisted</> : selectedCandidate.status === 'rejected' ? <><CircleX size={15} aria-hidden="true" />Rejected</> : <><Clock3 size={15} aria-hidden="true" />Needs review</>}
               </span>
               {selectedCandidate.rank && <span>Rank {selectedCandidate.rank} of {evaluatedCandidates.length}</span>}
             </div>
@@ -2343,7 +2366,7 @@ function ResultsPage({ jobs, selectedJobId, setSelectedJobId, saveFeedback }) {
 
           <div className="screening-detail-cards">
             <article className="screening-summary-card">
-              <p className="screening-results-eyebrow">✦ AI summary</p>
+              <p className="screening-results-eyebrow"><Sparkles size={15} aria-hidden="true" />AI summary</p>
               <p>{selectedCandidate.feedback || 'No evaluation summary was returned for this candidate.'}</p>
               <small>Based on submitted CV text and job criteria. Verify evidence before deciding.</small>
             </article>
@@ -2586,7 +2609,7 @@ function InterviewQuestionsPage({ jobs, selectedJobId, setSelectedJobId }) {
                 <div><h2>{selectedCandidate.candidate_name}</h2><p>{jobTitle}</p></div>
               </div>
               <div className="interview-candidate-score">
-                <span className={`interview-status-pill is-${selectedCandidate.status === 'shortlisted' ? 'shortlisted' : selectedCandidate.status === 'rejected' ? 'rejected' : 'pending'}`}><span aria-hidden="true">{selectedCandidate.status === 'shortlisted' ? '✓' : '•'}</span>{selectedCandidate.status === 'shortlisted' ? 'Shortlisted' : selectedCandidate.status === 'rejected' ? 'Rejected' : 'Pending decision'}</span>
+                <span className={`interview-status-pill is-${selectedCandidate.status === 'shortlisted' ? 'shortlisted' : selectedCandidate.status === 'rejected' ? 'rejected' : 'pending'}`}>{selectedCandidate.status === 'shortlisted' ? <><CircleCheck size={15} aria-hidden="true" />Shortlisted</> : selectedCandidate.status === 'rejected' ? <><CircleX size={15} aria-hidden="true" />Rejected</> : <><CircleDashed size={15} aria-hidden="true" />Pending decision</>}</span>
                 <strong>{selectedCandidate.score ?? '—'}{selectedCandidate.score !== null && selectedCandidate.score !== undefined ? '%' : ''}</strong>
               </div>
               <button type="button" className="interview-text-link" onClick={() => navigate('/results', { state: { jobId, candidateId: selectedCandidate.cv_id } })}><ExternalLink size={14} aria-hidden="true" />Open screening result</button>

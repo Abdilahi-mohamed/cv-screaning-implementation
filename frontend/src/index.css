@@ -2,28 +2,28 @@
 @import 'tailwindcss';
 
 :root {
-  font-family: 'Inter', sans-serif;
-  color: #171b1d;
-  background: #f5f2ea;
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+  color: #0f172a;
+  background: #f7f8fc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --app-bg: #f5f2ea;
-  --app-surface: #fffefa;
-  --app-panel: #fffefa;
+  --app-bg: #f7f8fc;
+  --app-surface: #ffffff;
+  --app-panel: #ffffff;
   --app-input: #ffffff;
-  --app-border: #d9d4c9;
-  --app-text: #171b1d;
-  --app-text-soft: #556166;
-  --app-text-muted: #747e80;
-  --app-accent: #2f6f9f;
-  --app-accent-strong: #245c87;
-  --app-accent-soft: #dce7ed;
-  --app-accent-tint: #edf3f5;
-  --app-success: #6f9b58;
-  --app-warning: #c9933c;
-  --app-error: #dc2626;
+  --app-border: #e2e5ee;
+  --app-text: #0f172a;
+  --app-text-soft: #475569;
+  --app-text-muted: #64748b;
+  --app-accent: #2f2dd6;
+  --app-accent-strong: #2422b0;
+  --app-accent-soft: #eeeefd;
+  --app-accent-tint: #f6f5ff;
+  --app-success: #047857;
+  --app-warning: #b45309;
+  --app-error: #b91c1c;
 }
 
 html { scroll-behavior: smooth; }
@@ -3787,50 +3787,56 @@ button { cursor: pointer; }
 }
 
 .app-shell:not(.public-job-page) {
-  --app-bg: #f5f2ea;
-  --app-surface: #fffefa;
-  --app-panel: #fffefa;
+  --app-bg: #f7f8fc;
+  --app-surface: #ffffff;
+  --app-panel: #ffffff;
   --app-input: #ffffff;
-  --app-border: #ded9cf;
-  --app-text: #252c2f;
-  --app-text-soft: #626e72;
-  --app-text-muted: #7c8584;
-  --app-accent: #805536;
-  --app-accent-strong: #68432e;
-  --app-accent-soft: #e9ddd1;
-  --app-accent-tint: #f4ece4;
-  --app-success: #79a65e;
-  --app-warning: #c9933c;
-  --app-error: #b96355;
-  background: linear-gradient(180deg, #f8f6f0 0%, #f3f0e8 100%);
+  --app-border: #e2e5ee;
+  --app-text: #0f172a;
+  --app-text-soft: #475569;
+  --app-text-muted: #64748b;
+  --app-accent: #2f2dd6;
+  --app-accent-strong: #2422b0;
+  --app-accent-soft: #eeeefd;
+  --app-accent-tint: #f6f5ff;
+  --app-success: #047857;
+  --app-warning: #b45309;
+  --app-error: #b91c1c;
+  background: #f7f8fc;
 }
 
 .app-shell:not(.public-job-page) .app-header-main,
 .app-shell:not(.public-job-page) .app-top-nav {
-  border-color: #ded9cf;
-  background: #fbfaf6;
+  border-color: #e2e5ee;
+  background: #ffffff;
 }
 
 .app-shell:not(.public-job-page) .app-logo {
-  border-color: rgba(128, 85, 54, 0.16);
-  background: linear-gradient(145deg, #f0e6dc, #e9ddd1);
-  color: #805536;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.35rem;
+  border-color: transparent;
+  background: #302bd3;
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 800;
+  box-shadow: none;
 }
 
 .app-shell:not(.public-job-page) .app-top-nav-link[aria-current='page'],
 .app-shell:not(.public-job-page) .app-top-nav-link.active {
-  border-bottom-color: #805536;
-  background: #e9ddd1;
-  color: #68432e !important;
+  border-bottom-color: #2f2dd6;
+  background: #eeeefd;
+  color: #2422b0 !important;
 }
 
 .app-shell:not(.public-job-page) .hr-workspace-layout,
 .app-shell:not(.public-job-page) .hr-sidebar {
-  background: #f5f2ea;
+  background: #f7f8fc;
 }
 
 .app-shell:not(.public-job-page) .hr-sidebar {
-  border-color: #ded9cf;
+  border-color: #e2e5ee;
 }
 
 .app-shell:not(.public-job-page) .hr-sidebar-link {
@@ -3840,42 +3846,42 @@ button { cursor: pointer; }
 .app-shell:not(.public-job-page) .hr-sidebar-link:hover,
 .app-shell:not(.public-job-page) .hr-sidebar-link.is-active,
 .app-shell:not(.public-job-page) .hr-sidebar-link[aria-current='page'] {
-  background: #e9ddd1;
-  color: #68432e;
+  background: #eeeefd;
+  color: #2f2dd6;
 }
 
 .app-shell:not(.public-job-page) .hr-sidebar-company {
-  border-color: #ded9cf;
+  border-color: #e2e5ee;
 }
 
 .app-shell:not(.public-job-page) .hr-sidebar-company-mark {
-  background: #e1eeeb;
-  color: #438b83;
+  background: #eeeefd;
+  color: #2f2dd6;
 }
 
 .app-shell:not(.public-job-page) .hr-sidebar-company strong {
-  color: #252c2f;
+  color: #0f172a;
 }
 
 .app-shell:not(.public-job-page) .hr-sidebar-company small,
 .app-shell:not(.public-job-page) .hr-header-date {
-  color: #737d7e;
+  color: #64748b;
 }
 
 .app-shell:not(.public-job-page) .hr-logout-button {
-  border-color: #d8d3c8;
-  background: #fffefa;
-  color: #485458;
+  border-color: #8a93a8;
+  background: #ffffff;
+  color: #0f172a;
 }
 
 .app-shell:not(.public-job-page) .hr-logout-button:hover {
-  border-color: #34779e;
-  color: #285f80;
+  border-color: #2f2dd6;
+  color: #2f2dd6;
 }
 
 .app-shell:not(.public-job-page) .app-layout,
 .app-shell:not(.public-job-page) .app-main {
-  color: #252c2f;
+  color: #0f172a;
 }
 
 .app-shell:not(.public-job-page) .page-panel,
@@ -3883,50 +3889,57 @@ button { cursor: pointer; }
 .app-shell:not(.public-job-page) .candidate-card,
 .app-shell:not(.public-job-page) .ranking-sidebar,
 .app-shell:not(.public-job-page) .ranking-document-panel {
-  border-color: #ded9cf;
-  background: #fffefa;
-  box-shadow: 0 8px 22px rgba(48, 55, 50, 0.055);
+  border-color: #e2e5ee;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 4px 12px rgba(15, 23, 42, .05);
 }
 
 .app-shell:not(.public-job-page) .dashboard-page .metric-card {
   min-height: 145px;
-  border-color: #ded9cf;
-  background: #fffefa;
+  border-color: #e2e5ee;
+  background: #ffffff;
 }
 
 .app-shell:not(.public-job-page) .dashboard-page .metric-card > div:first-child {
-  border-color: #dce7ed;
-  background: #f0e6dc;
-  color: #805536;
+  border-color: #e2e5ee;
+  background: #eeeefd;
+  color: #2f2dd6;
 }
 
 .app-shell:not(.public-job-page) .dashboard-page .metric-card .text-white {
-  color: #252c2f !important;
+  color: #0f172a !important;
 }
 
 .app-shell:not(.public-job-page) .dashboard-page select {
-  border-color: #d8d3c8;
-  background: #fffefa;
-  color: #303a3e;
+  border-color: #8a93a8;
+  background: #ffffff;
+  color: #0f172a;
   box-shadow: none;
 }
 
-.app-shell:not(.public-job-page) .dashboard-primary-action,
-.app-shell:not(.public-job-page) .page-panel button:not(.mini-panel-button),
-.app-shell:not(.public-job-page) .ranking-document-panel button:not(.ranking-document-button) {
-  border-color: rgba(128, 85, 54, 0.2);
-  background: linear-gradient(135deg, #805536 0%, #a87952 100%);
-  box-shadow: 0 5px 13px rgba(128, 85, 54, 0.17);
+.app-shell:not(.public-job-page) .dashboard-primary-action {
+  border-color: #2f2dd6;
+  border-radius: 10px;
+  background: #2f2dd6;
+  box-shadow: none;
+  font-size: 15px;
+}
+
+.app-shell:not(.public-job-page) .dashboard-primary-action:hover {
+  background: #2422b0;
 }
 
 .app-shell:not(.public-job-page) .mini-panel-button {
-  border-color: #e3d1c0;
-  background: #f4ece4;
-  color: #805536 !important;
+  border-color: #8a93a8;
+  background: #ffffff;
+  color: #2f2dd6 !important;
+  box-shadow: none;
 }
 
 .app-shell:not(.public-job-page) .mini-panel-button.is-primary {
-  background: linear-gradient(135deg, #805536 0%, #a87952 100%);
+  border-color: #2f2dd6;
+  background: #2f2dd6;
   color: #ffffff !important;
 }
 
@@ -3936,56 +3949,56 @@ button { cursor: pointer; }
 .app-shell:not(.public-job-page) input,
 .app-shell:not(.public-job-page) select,
 .app-shell:not(.public-job-page) textarea {
-  border-color: #d8d3c8;
+  border-color: #8a93a8;
   background-color: #ffffff;
-  color: #303a3e;
+  color: #0f172a;
   box-shadow: none;
 }
 
 .app-shell:not(.public-job-page) .app-page input:focus,
 .app-shell:not(.public-job-page) .app-page select:focus,
 .app-shell:not(.public-job-page) .app-page textarea:focus {
-  border-color: #b89577;
-  box-shadow: 0 0 0 3px rgba(128, 85, 54, 0.14);
+  border-color: #2f2dd6;
+  box-shadow: 0 0 0 2px rgba(47, 45, 214, .18);
 }
 
 .app-shell:not(.public-job-page) .app-page thead th {
-  background: #eeebe3;
-  color: #626e72 !important;
+  background: #f7f8fc;
+  color: #475569 !important;
 }
 
 .app-shell:not(.public-job-page) .app-page tbody tr {
-  background: #fffefa;
+  background: #ffffff;
 }
 
 .app-shell:not(.public-job-page) .app-page tbody tr:hover {
-  background: #f7f5ef;
+  background: #f7f8fc;
 }
 
 .app-shell:not(.public-job-page) .ranking-candidate {
-  border-color: #e2ded5;
-  background: #fbfaf6;
+  border-color: #e2e5ee;
+  background: #ffffff;
 }
 
 .app-shell:not(.public-job-page) .ranking-candidate[aria-current='true'] {
-  border-color: #c9ad93;
-  background: #f1e7dd;
+  border-color: #2f2dd6;
+  background: #eeeefd;
 }
 
 .app-shell:not(.public-job-page) .ranking-document-button[aria-pressed='true'] {
-  border-color: #c9ad93;
-  background: #e9ddd1;
-  color: #68432e;
+  border-color: #2f2dd6;
+  background: #eeeefd;
+  color: #2422b0;
 }
 
 .app-shell:not(.public-job-page) .ranking-document-viewer {
-  background: #f3f0e8;
+  background: #f7f8fc;
 }
 
 .app-shell:not(.public-job-page) [class*='bg-slate-100'],
 .app-shell:not(.public-job-page) [class*='bg-slate-200'],
 .app-shell:not(.public-job-page) [class*='bg-gray-100'] {
-  background-color: #eeebe3 !important;
+  background-color: #f7f8fc !important;
 }
 
 .app-shell:not(.public-job-page) [class*='text-white'] {
@@ -3997,43 +4010,43 @@ button { cursor: pointer; }
 }
 
 .app-shell:not(.public-job-page) .dashboard-page h2.text-white {
-  color: #2b2723 !important;
+  color: #0f172a !important;
 }
 
 .app-shell:not(.public-job-page) [class*='text-blue-'] {
-  color: #805536 !important;
+  color: #2f2dd6 !important;
 }
 
 .app-shell:not(.public-job-page) [class*='bg-blue-50'],
 .app-shell:not(.public-job-page) [class*='bg-blue-100'],
 .app-shell:not(.public-job-page) [class*='bg-blue-200'] {
-  background-color: #f0e6dc !important;
+  background-color: #eeeefd !important;
 }
 
 .app-shell:not(.public-job-page) [class*='bg-blue-300'],
 .app-shell:not(.public-job-page) [class*='bg-blue-400'],
 .app-shell:not(.public-job-page) [class*='bg-blue-500'] {
-  background-color: #e3d1c0 !important;
+  background-color: #dadafb !important;
 }
 
 .app-shell:not(.public-job-page) [class*='bg-blue-600'],
 .app-shell:not(.public-job-page) [class*='bg-blue-700'],
 .app-shell:not(.public-job-page) [class*='bg-blue-800'],
 .app-shell:not(.public-job-page) [class*='bg-blue-900'] {
-  background-color: #805536 !important;
-  color: #fffefa !important;
+  background-color: #2f2dd6 !important;
+  color: #ffffff !important;
 }
 
 .app-shell:not(.public-job-page) [class*='border-blue-'] {
-  border-color: #c9ad93 !important;
+  border-color: #8e8cff !important;
 }
 
 .app-shell:not(.public-job-page) [class*='focus:border-blue-']:focus {
-  border-color: #b89577 !important;
+  border-color: #2f2dd6 !important;
 }
 
 .app-shell:not(.public-job-page) [class*='focus:ring-blue-']:focus {
-  --tw-ring-color: rgba(128, 85, 54, 0.25) !important;
+  --tw-ring-color: rgba(47, 45, 214, 0.25) !important;
 }
 
 .rankings-page-workspace {
@@ -7911,6 +7924,315 @@ button { cursor: pointer; }
 
   .owner-activity-note {
     padding: 11px 13px;
+  }
+}
+
+:root {
+  --design-bg: #f7f8fc;
+  --design-surface: #ffffff;
+  --design-border: #e2e5ee;
+  --design-border-strong: #8a93a8;
+  --design-text: #0f172a;
+  --design-muted: #475569;
+  --design-accent: #2f2dd6;
+  --design-accent-hover: #2422b0;
+  --design-accent-soft: #eeeefd;
+  --design-success: #047857;
+  --design-warning: #b45309;
+  --design-danger: #b91c1c;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--design-accent);
+  outline-offset: 2px;
+}
+
+.app-shell:not(.public-job-page) .dashboard-primary-action,
+.app-shell:not(.public-job-page) .job-builder-primary,
+.app-shell:not(.public-job-page) .interview-primary-button,
+.app-shell:not(.public-job-page) .screening-primary-button,
+.app-shell:not(.public-job-page) .rankings-primary-button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--design-accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.app-shell:not(.public-job-page) .dashboard-primary-action:hover,
+.app-shell:not(.public-job-page) .job-builder-primary:hover,
+.app-shell:not(.public-job-page) .interview-primary-button:hover,
+.app-shell:not(.public-job-page) .screening-primary-button:hover,
+.app-shell:not(.public-job-page) .rankings-primary-button:hover {
+  background: var(--design-accent-hover);
+}
+
+.app-shell:not(.public-job-page) .job-builder-secondary,
+.app-shell:not(.public-job-page) .interview-outline-button,
+.app-shell:not(.public-job-page) .screening-outline-button,
+.app-shell:not(.public-job-page) .rankings-outline-button {
+  min-height: 44px;
+  border: 1px solid var(--design-border-strong);
+  border-radius: 10px;
+  background: var(--design-surface);
+  color: var(--design-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.app-shell:not(.public-job-page) .job-builder-secondary:hover,
+.app-shell:not(.public-job-page) .interview-outline-button:hover,
+.app-shell:not(.public-job-page) .screening-outline-button:hover,
+.app-shell:not(.public-job-page) .rankings-outline-button:hover {
+  background: var(--design-bg);
+}
+
+.app-shell:not(.public-job-page) .screening-reject-button,
+.app-shell:not(.public-job-page) .job-builder-remove-field {
+  border-color: var(--design-danger);
+  background: #fff;
+  color: var(--design-danger);
+}
+
+.app-shell:not(.public-job-page) .screening-reject-button:hover,
+.app-shell:not(.public-job-page) .job-builder-remove-field:hover {
+  background: #fdecec;
+}
+
+.app-shell:not(.public-job-page) .app-page input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+.app-shell:not(.public-job-page) .app-page select,
+.app-shell:not(.public-job-page) .app-page textarea {
+  border-color: var(--design-border-strong);
+  border-radius: 10px;
+  color: var(--design-text);
+}
+
+.app-shell:not(.public-job-page) .app-page input:focus,
+.app-shell:not(.public-job-page) .app-page select:focus,
+.app-shell:not(.public-job-page) .app-page textarea:focus {
+  border-color: var(--design-accent);
+  box-shadow: 0 0 0 2px rgba(47, 45, 214, .18);
+}
+
+.app-shell:not(.public-job-page) .cv-upload-page input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+.app-shell:not(.public-job-page) .cv-upload-page select {
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.app-shell:not(.public-job-page) .cv-upload-page textarea {
+  min-height: 90px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.app-shell:not(.public-job-page) input[type='checkbox'],
+.app-shell:not(.public-job-page) input[type='radio'] {
+  accent-color: var(--design-accent);
+}
+
+.app-shell:not(.public-job-page) .interview-status-pill,
+.app-shell:not(.public-job-page) .screening-status-pill,
+.app-shell:not(.public-job-page) .rankings-status-pill {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.app-shell:not(.public-job-page) .interview-status-pill.is-shortlisted,
+.app-shell:not(.public-job-page) .screening-status-pill.is-shortlisted,
+.app-shell:not(.public-job-page) .rankings-status-pill.is-shortlisted {
+  background: #e7f5ef;
+  color: var(--design-success);
+}
+
+.app-shell:not(.public-job-page) .interview-status-pill.is-pending,
+.app-shell:not(.public-job-page) .screening-status-pill.is-review,
+.app-shell:not(.public-job-page) .rankings-status-pill.is-review {
+  background: #fdf3e4;
+  color: var(--design-warning);
+}
+
+.app-shell:not(.public-job-page) .interview-status-pill.is-rejected,
+.app-shell:not(.public-job-page) .screening-status-pill.is-rejected,
+.app-shell:not(.public-job-page) .rankings-status-pill.is-rejected {
+  background: #fdecec;
+  color: var(--design-danger);
+}
+
+.app-shell:not(.public-job-page) .rankings-status-pill.is-pending {
+  background: #eef0f6;
+  color: var(--design-muted);
+}
+
+.app-shell:not(.public-job-page) .screening-skill-tags > span {
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.app-shell:not(.public-job-page) .screening-skill-tags > .is-matched {
+  background: #e6f6f4;
+  color: #0f766e;
+}
+
+.app-shell:not(.public-job-page) .screening-skill-tags > .is-missing {
+  border: 1px dashed var(--design-border-strong);
+  background: transparent;
+  color: var(--design-muted);
+}
+
+.app-shell:not(.public-job-page) .screening-summary-card {
+  border: 0;
+  border-radius: 16px;
+  background: #e6f6f4;
+  padding: 20px;
+}
+
+.app-shell:not(.public-job-page) .screening-summary-card > .screening-results-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #0f766e;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-upload {
+  display: grid;
+  gap: 7px;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-label {
+  color: var(--design-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-drop {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px dashed var(--design-border-strong);
+  border-radius: 16px;
+  background: var(--design-bg);
+  padding: 22px;
+  color: var(--design-text);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-drop:hover,
+.app-shell:not(.public-job-page) .job-builder-cv-drop:focus-within {
+  border-color: var(--design-accent);
+  background: #f6f5ff;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-drop > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--design-accent-soft);
+  color: var(--design-accent);
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-title strong {
+  color: var(--design-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-drop small {
+  color: var(--design-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-list li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--design-border);
+  border-radius: 8px;
+  background: var(--design-surface);
+  padding: 7px 10px;
+  color: var(--design-muted);
+  font-size: 12px;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-list li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-list button {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--design-muted);
+  font-size: 19px;
+}
+
+.app-shell:not(.public-job-page) .job-builder-cv-list button:hover {
+  background: #fdecec;
+  color: var(--design-danger);
+}
+
+@media (max-width: 600px) {
+  .app-shell:not(.public-job-page) .job-builder-cv-drop {
+    min-height: 160px;
+    padding: 18px 12px;
   }
 }
 
