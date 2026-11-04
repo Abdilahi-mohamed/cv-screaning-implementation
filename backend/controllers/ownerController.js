@@ -45,11 +45,19 @@ const getDashboard = async (req, res, next) => {
 const getSettings = async (req, res, next) => {
   try {
     if (mongoose.connection.readyState !== 1) return databaseUnavailable(res);
-    const settings = await SystemSetting.findOneAndUpdate(
+    let settings = await SystemSetting.findOneAndUpdate(
       { key: 'platform' },
       { $setOnInsert: { key: 'platform' } },
       { new: true, upsert: true, setDefaultsOnInsert: true },
     ).lean();
+    if (settings.default_brand_color?.toLowerCase() === '#2f6f9f') {
+      const migratedSettings = await SystemSetting.findOneAndUpdate(
+        { key: 'platform', default_brand_color: settings.default_brand_color },
+        { $set: { default_brand_color: '#2f2dd6', updated_at: new Date() } },
+        { new: true },
+      ).lean();
+      if (migratedSettings) settings = migratedSettings;
+    }
     return res.json(serializeSettings(settings));
   } catch (error) {
     return next(error);

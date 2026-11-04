@@ -47,7 +47,7 @@ const createJob = async (req, res) => {
     const jobId = generateId('job');
     const applicationLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/apply/${jobId}`;
     const settings = useMemory() ? null : await SystemSetting.findOne({ key: 'platform' }).select('default_brand_color');
-    const defaultBrandColor = settings?.default_brand_color || '#2f6f9f';
+    const defaultBrandColor = settings?.default_brand_color || '#2f2dd6';
 
     const jobRecord = {
       job_id: jobId,

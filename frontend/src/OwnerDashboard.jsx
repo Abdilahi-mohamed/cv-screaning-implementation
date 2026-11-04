@@ -30,7 +30,7 @@ const PERMISSION_OPTIONS = [
 const emptyStats = { companies: 0, active_companies: 0, suspended_companies: 0, hr_users: 0, jobs: 0, candidates: 0 };
 const defaultSystemSettings = {
   allow_public_applications: true,
-  default_brand_color: '#2f6f9f',
+  default_brand_color: '#2f2dd6',
   max_cv_file_size_mb: 10,
   rejected_retention_months: 6,
 };
@@ -223,7 +223,7 @@ function OwnerWorkspace({ user, onLogout }) {
       <aside className="owner-sidebar">
         <div className="owner-brand">
           <a className="owner-brand-link" href="/owner" aria-label="CV Screening system overview">
-            <svg width="30" height="22" viewBox="0 0 200 120" aria-hidden="true"><path d="M87.6 32.4 A39 39 0 1 0 87.6 87.6" fill="none" stroke="#8e8cff" strokeWidth="22" /><polygon points="96,10 120,10 146,78.4 172,10 196,10 158,110 134,110" fill="#8e8cff" /></svg>
+            <svg width="30" height="22" viewBox="0 0 200 120" aria-hidden="true"><path d="M87.6 32.4 A39 39 0 1 0 87.6 87.6" fill="none" stroke="var(--brand-dark)" strokeWidth="22" /><polygon points="96,10 120,10 146,78.4 172,10 196,10 158,110 134,110" fill="var(--brand-dark)" /></svg>
             <span><strong>CV Screening</strong><small>SYSTEM ADMIN</small></span>
           </a>
         </div>
@@ -510,7 +510,7 @@ function SystemSettingsForm({ settings, savedSettings, onChange, onSave, onDisca
           <div><strong>Default company brand colour</strong><small>The starting colour for new company job pages. Companies can change it.</small></div>
           <div className="owner-color-controls">
             <div className="owner-color-swatches" role="group" aria-label="Brand colour presets">
-              {[['Indigo', '#2f2dd6'], ['Teal', '#0f766e'], ['Slate', '#334155']].map(([label, color]) => (
+              {[['Indigo', '#2f2dd6'], ['Teal', '#0f766e'], ['Slate', '#475569']].map(([label, color]) => (
                 <button key={color} type="button" aria-label={label} aria-pressed={settings.default_brand_color.toLowerCase() === color} style={{ backgroundColor: color }} onClick={() => updateBrandColor(color)} />
               ))}
             </div>

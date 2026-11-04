@@ -114,18 +114,25 @@ const sanitizeRichText = (html = '') => {
 };
 
 const buttonClasses = {
-  blue: 'bg-blue-600 hover:bg-blue-700 text-white',
-  green: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-  red: 'bg-red-600 hover:bg-red-700 text-white',
-  gray: 'bg-slate-200 hover:bg-slate-300 text-slate-700',
-  purple: 'bg-violet-600 hover:bg-violet-700 text-white',
+  blue: 'button-primary',
+  green: 'button-success',
+  red: 'button-danger',
+  gray: 'button-secondary',
+  purple: 'button-primary',
 };
 
-const statusColor = (status) => {
-  if (status === 'shortlisted') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'rejected') return 'bg-red-100 text-red-700';
-  return 'bg-yellow-100 text-yellow-700';
+const statusTone = (status) => {
+  if (status === 'shortlisted') return 'success';
+  if (status === 'rejected') return 'danger';
+  if (['pending', 'pending_decision', 'review', 'needs_review'].includes(status)) return 'warning';
+  return 'neutral';
 };
+
+function StatusPill({ status, children }) {
+  const tone = statusTone(status);
+  const Icon = tone === 'success' ? CircleCheck : tone === 'danger' ? CircleX : tone === 'warning' ? Clock3 : CircleDashed;
+  return <span className={`status-pill is-${tone}`}><Icon size={15} aria-hidden="true" />{children}</span>;
+}
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -462,7 +469,7 @@ function DashboardPage({ dashboard, jobs, selectedJobId, setSelectedJobId }) {
                       <td className="px-5 py-3 text-slate-500">{index + 1}</td>
                       <td className="px-5 py-3 font-medium text-slate-900">{candidate.name}</td>
                       <td className="px-5 py-3 text-slate-600">{candidate.score ?? '—'}{candidate.score != null ? '/100' : ''}</td>
-                      <td className="px-5 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusColor(candidate.status)}`}>{candidate.status || 'evaluated'}</span></td>
+                      <td className="px-5 py-3"><StatusPill status={candidate.status}>{candidate.status || 'evaluated'}</StatusPill></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1142,7 +1149,7 @@ function PublicJobPage({ theme }) {
               <header className="flex flex-wrap items-center gap-4 border-b border-slate-100 pb-6">
                 {job.brand_logo_url
                   ? <img src={job.brand_logo_url} alt={`${job.company_name || 'Company'} logo`} className="h-16 max-w-48 rounded-lg object-contain" />
-                  : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl text-xl font-bold text-slate-900" style={{ backgroundColor: brandColor }}>{(job.company_name || 'C').slice(0, 1).toUpperCase()}</span>}
+                  : <span className="public-job-brand-mark grid h-14 w-14 shrink-0 place-items-center rounded-xl text-xl font-bold" style={{ backgroundColor: brandColor }}>{(job.company_name || 'C').slice(0, 1).toUpperCase()}</span>}
                 <div>
                   <p className="text-base font-semibold text-slate-900">{job.company_name || 'Company'}</p>
                   <p className="mt-1 text-sm text-slate-500">Career opportunity</p>
@@ -1180,7 +1187,7 @@ function PublicJobPage({ theme }) {
 
               <footer className="border-t border-slate-100 pt-6">
                 <p className="mb-4 text-sm text-slate-600">Interested in this role? Complete the application form below.</p>
-                <a href="#application-form" className="block w-full rounded-lg px-5 py-3 text-center text-sm font-semibold text-slate-900 transition hover:opacity-90 sm:ml-auto sm:w-auto" style={{ backgroundColor: brandColor }}>
+                <a href="#application-form" className="public-job-primary-action block w-full rounded-lg px-5 py-3 text-center text-sm font-semibold transition hover:opacity-90 sm:ml-auto sm:w-auto" style={{ backgroundColor: brandColor }}>
                   Go to application form
                 </a>
               </footer>
@@ -1274,7 +1281,7 @@ function ApplicationFormPage({ job, jobId, brandColor }) {
         })}
 
         {formError && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</p>}
-        <button type="submit" disabled={submitting} className="w-full rounded-lg px-5 py-3 text-sm font-semibold text-slate-900 hover:opacity-90 disabled:cursor-wait disabled:opacity-60 sm:w-auto" style={{ backgroundColor: brandColor }}>
+        <button type="submit" disabled={submitting} className="public-job-primary-action w-full rounded-lg px-5 py-3 text-sm font-semibold hover:opacity-90 disabled:cursor-wait disabled:opacity-60 sm:w-auto" style={{ backgroundColor: brandColor }}>
           {submitting ? 'Submitting application...' : 'Submit application'}
         </button>
       </form>
@@ -1999,16 +2006,17 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
                   <p className="truncate text-sm text-slate-500">{activeCandidate.email}{activeCandidate.phone ? ` · ${activeCandidate.phone}` : ''}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-xs font-medium text-cyan-200">
+                  <span className="status-pill is-ai">
+                    <Sparkles size={14} aria-hidden="true" />
                     {activeCandidate.analysis_status === 'analyzed' ? 'AI analyzed' : 'Analysis needed'}
                   </span>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusColor(activeCandidate.status)}`}>
+                  <StatusPill status={activeCandidate.status}>
                     {activeCandidate.status === 'pending_decision' ? 'Pending review' : activeCandidate.status}
-                  </span>
-                  <button type="button" onClick={() => setSelectedCandidate(activeCandidate)} className="h-9 w-28 shrink-0 rounded-lg bg-blue-50 px-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">View evaluation</button>
-                  <button type="button" onClick={() => shortlist(activeCandidate.cv_id)} className="h-9 w-28 shrink-0 rounded-lg bg-emerald-50 px-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Shortlist</button>
-                  <button type="button" onClick={() => reject(activeCandidate.cv_id)} className="h-9 w-28 shrink-0 rounded-lg bg-red-50 px-2 text-xs font-semibold text-red-700 hover:bg-red-100">Reject</button>
-                  <button type="button" onClick={() => deleteCandidate(activeCandidate)} disabled={deletingCandidateId === activeCandidate.cv_id} className="h-9 shrink-0 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 text-xs font-semibold text-rose-200 hover:bg-rose-400/20 disabled:opacity-50">{deletingCandidateId === activeCandidate.cv_id ? 'Deleting…' : 'Delete applicant'}</button>
+                  </StatusPill>
+                  <button type="button" onClick={() => setSelectedCandidate(activeCandidate)} className="button-secondary h-9 w-28 shrink-0 px-2 text-xs">View evaluation</button>
+                  <button type="button" onClick={() => shortlist(activeCandidate.cv_id)} className="button-success h-9 w-28 shrink-0 px-2 text-xs">Shortlist</button>
+                  <button type="button" onClick={() => reject(activeCandidate.cv_id)} className="button-danger h-9 w-28 shrink-0 px-2 text-xs">Reject</button>
+                  <button type="button" onClick={() => deleteCandidate(activeCandidate)} disabled={deletingCandidateId === activeCandidate.cv_id} className="button-danger h-9 shrink-0 px-3 text-xs disabled:opacity-50">{deletingCandidateId === activeCandidate.cv_id ? 'Deleting…' : 'Delete applicant'}</button>
                 </div>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
@@ -2083,7 +2091,7 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
                 <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
                   {activeCandidate.city && <span>Location: <strong className="text-slate-200">{activeCandidate.city}</strong></span>}
                   {activeCandidate.uploaded_at && <span>Applied: <strong className="text-slate-200">{new Date(activeCandidate.uploaded_at).toLocaleDateString()}</strong></span>}
-                  {activeCandidate.linkedin && <a href={activeCandidate.linkedin} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">LinkedIn profile ↗</a>}
+                  {activeCandidate.linkedin && <a href={activeCandidate.linkedin} target="_blank" rel="noreferrer">LinkedIn profile ↗</a>}
                 </div>
               </div>
             </section>
@@ -2096,20 +2104,20 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
         <section className="ranking-chat-panel overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/70">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/70 px-5 py-4">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-300/20 to-violet-400/20 text-lg text-cyan-200">✦</span>
+              <span className="ranking-chat-ai-mark">✦</span>
               <div>
                 <h3 className="font-semibold text-slate-100">Recruitment AI</h3>
                 <p className="text-xs text-slate-400">Context: {activeCandidate.candidate_name} · {jobs.find((job) => job.job_id === jobId)?.title || 'Selected role'}</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={generateCandidateQuestions} disabled={questionGenerationLoading || chatLoading || Boolean(deletingConversationId)} className="rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:opacity-50">{questionGenerationLoading ? 'Generating…' : '↻ Generate questions'}</button>
-              <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs text-emerald-200">Candidate-scoped</span>
+              <button type="button" onClick={generateCandidateQuestions} disabled={questionGenerationLoading || chatLoading || Boolean(deletingConversationId)} className="ranking-chat-accent-button">{questionGenerationLoading ? 'Generating…' : '↻ Generate questions'}</button>
+              <span className="status-pill is-neutral"><CircleDashed size={15} aria-hidden="true" />Candidate-scoped</span>
             </div>
           </div>
           <div className="grid min-h-[30rem] md:grid-cols-[17rem_minmax(0,1fr)]">
             <aside className="flex max-h-[20rem] flex-col border-b border-slate-700/70 bg-slate-950/35 p-4 md:max-h-[48rem] md:border-b-0 md:border-r" aria-label="Chat history">
-              <button type="button" onClick={() => createNewChat()} disabled={chatLoading || Boolean(deletingConversationId)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-3 py-2.5 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/60 hover:bg-cyan-300/15 disabled:opacity-50">
+              <button type="button" onClick={() => createNewChat()} disabled={chatLoading || Boolean(deletingConversationId)} className="ranking-chat-accent-button mb-4 w-full">
                 <span aria-hidden="true">＋</span> New chat
               </button>
               <div className="mb-3 flex items-center justify-between gap-2 px-1">
@@ -2123,7 +2131,7 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
                 <div className="flex-1 space-y-1 overflow-y-auto pr-1">
                   {chatThreads.map((thread) => (
                     <div key={thread.conversation_id} className="group flex items-center gap-1 rounded-xl pr-1 hover:bg-slate-800/70">
-                      <button type="button" onClick={() => selectConversation(thread.conversation_id)} disabled={chatLoading || Boolean(deletingConversationId)} aria-current={activeConversationId === thread.conversation_id ? 'true' : undefined} className="min-w-0 flex-1 rounded-xl border border-transparent p-3 text-left transition hover:border-slate-700/70 aria-[current=true]:border-cyan-300/30 aria-[current=true]:bg-cyan-300/10 disabled:cursor-wait">
+                      <button type="button" onClick={() => selectConversation(thread.conversation_id)} disabled={chatLoading || Boolean(deletingConversationId)} aria-current={activeConversationId === thread.conversation_id ? 'true' : undefined} className="ranking-chat-thread min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-slate-200">{thread.title || 'Previous conversation'}</span>
                         <span className="mt-1 block truncate text-xs text-slate-400">{thread.last_message || 'No messages yet'}</span>
                         <span className="mt-2 block text-[10px] text-slate-500">{thread.updated_at ? new Date(thread.updated_at).toLocaleDateString() : 'Just now'} · {thread.message_count || 0} messages</span>
@@ -2137,8 +2145,8 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
               )}
             </aside>
             <div className="min-w-0">
-          {questionGenerationError && <p role="alert" className="mx-5 mt-4 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">{questionGenerationError}</p>}
-          {questionGenerationSuccess && <p role="status" className="mx-5 mt-4 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm text-emerald-100">{questionGenerationSuccess}</p>}
+          {questionGenerationError && <p role="alert" className="ranking-chat-error mx-5 mt-4">{questionGenerationError}</p>}
+          {questionGenerationSuccess && <p role="status" className="ranking-chat-success mx-5 mt-4">{questionGenerationSuccess}</p>}
           {!activeConversationId && !chatLoading && (
             <div className="grid gap-2 p-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
@@ -2147,23 +2155,23 @@ function RankingsPage({ jobs, selectedJobId, saveFeedback, setSelectedJobId }) {
                 'Which requirements are not yet evidenced?',
                 'Generate tailored interview questions for this candidate.',
               ].map((prompt) => (
-                <button key={prompt} type="button" onClick={() => createNewChat(prompt)} className="min-h-12 rounded-xl border border-slate-700/70 bg-slate-800/70 px-3 py-2 text-left text-xs text-slate-300 hover:border-cyan-300/40 hover:bg-slate-800">{prompt}</button>
+                <button key={prompt} type="button" onClick={() => createNewChat(prompt)} className="ranking-chat-prompt">{prompt}</button>
               ))}
             </div>
           )}
           <div className="max-h-80 space-y-3 overflow-y-auto px-5 py-4" aria-live="polite">
             {(activeConversationId && loadedChatConversationId === activeConversationId ? chatMessages : []).map((message, index) => (
               <div key={`${message.role}-${message.created_at || index}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <p className={`max-w-3xl whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 ${message.role === 'user' ? 'bg-cyan-300/15 text-cyan-50' : 'border border-slate-700/70 bg-slate-800/80 text-slate-200'}`}>{message.content}</p>
+                <p className={`ranking-chat-message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}>{message.content}</p>
               </div>
             ))}
             {(chatLoading || (activeConversationId && loadedChatConversationId !== activeConversationId)) && <p role="status" className="text-sm text-slate-400">Recruitment AI is reviewing the selected job and candidate…</p>}
             <div ref={chatMessagesEndRef} />
           </div>
-          {chatError && chatErrorCandidateId === activeCandidate.cv_id && <p role="alert" className="mx-5 mb-3 rounded-xl border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">{chatError}</p>}
+          {chatError && chatErrorCandidateId === activeCandidate.cv_id && <p role="alert" className="ranking-chat-error mx-5 mb-3">{chatError}</p>}
           <form onSubmit={sendChatMessage} className="flex gap-3 border-t border-slate-700/70 p-4">
-            <input value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} maxLength={2000} placeholder={activeConversationId ? 'Ask about this candidate’s fit, evidence, or interview…' : 'Start a new chat to message the recruitment AI'} aria-label="Message the recruitment AI" disabled={!activeConversationId} className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-300/60 disabled:opacity-60" />
-            <button type="submit" disabled={chatLoading || !chatDraft.trim() || !activeConversationId || loadedChatConversationId !== activeConversationId} className="rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-5 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-50">{chatLoading ? 'Thinking…' : 'Send'}</button>
+            <input value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} maxLength={2000} placeholder={activeConversationId ? 'Ask about this candidate’s fit, evidence, or interview…' : 'Start a new chat to message the recruitment AI'} aria-label="Message the recruitment AI" disabled={!activeConversationId} className="ranking-chat-input min-w-0 flex-1" />
+            <button type="submit" disabled={chatLoading || !chatDraft.trim() || !activeConversationId || loadedChatConversationId !== activeConversationId} className="ranking-chat-send">{chatLoading ? 'Thinking…' : 'Send'}</button>
           </form>
           <p className="px-5 pb-4 text-[11px] text-slate-500">AI-generated guidance is evidence-based assistance for HR, not a substitute for human review or a hiring decision.</p>
             </div>
