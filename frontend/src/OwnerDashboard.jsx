@@ -8,8 +8,10 @@ import {
   Check,
   ChevronRight,
   CircleAlert,
+  CircleCheck,
   LayoutDashboard,
   LogOut,
+  Pause,
   Plus,
   Search,
   Settings,
@@ -62,7 +64,9 @@ function OwnerWorkspace({ user, onLogout }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [query, setQuery] = useState('');
+  const [companyStatusFilter, setCompanyStatusFilter] = useState('all');
   const [modalCompany, setModalCompany] = useState(null);
+  const [pendingDeleteCompany, setPendingDeleteCompany] = useState(null);
 
   const refresh = useCallback(async () => {
     setError('');
@@ -85,8 +89,13 @@ function OwnerWorkspace({ user, onLogout }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const activeCompanies = useMemo(() => companies.filter((company) => company.status !== 'deleted'), [companies]);
-  const visibleCompanies = useMemo(() => activeCompanies.filter((company) =>
-    `${company.name} ${company.hr_user?.username || ''} ${company.hr_user?.email || ''}`.toLowerCase().includes(query.trim().toLowerCase())), [activeCompanies, query]);
+  const visibleCompanies = useMemo(() => activeCompanies.filter((company) => {
+    const matchesQuery = `${company.name} ${company.company_id} ${company.hr_user?.username || ''} ${company.hr_user?.name || ''} ${company.hr_user?.email || ''}`
+      .toLowerCase()
+      .includes(query.trim().toLowerCase());
+    const matchesStatus = companyStatusFilter === 'all' || company.status === companyStatusFilter;
+    return matchesQuery && matchesStatus;
+  }), [activeCompanies, companyStatusFilter, query]);
 
   const logout = async () => {
     try {
@@ -126,12 +135,14 @@ function OwnerWorkspace({ user, onLogout }) {
     }
   };
 
-  const deleteCompany = async (company) => {
-    if (!window.confirm(`Delete ${company.name} and disable its HR account? Its historical records will be retained for audit purposes.`)) return;
+  const deleteCompany = async () => {
+    if (!pendingDeleteCompany) return;
+    const company = pendingDeleteCompany;
     setError('');
     setNotice('');
     try {
       await axios.delete(`${API_URL}/owner/companies/${company.company_id}`, { withCredentials: true });
+      setPendingDeleteCompany(null);
       setNotice(`${company.name} was deleted. Its historical records are retained and no longer accessible to company users.`);
       await refresh();
     } catch (requestError) {
@@ -228,7 +239,7 @@ function OwnerWorkspace({ user, onLogout }) {
             <>
               {section === 'dashboard' && <DashboardOverview stats={stats} companies={activeCompanies} onViewCompanies={() => setSection('companies')} onEditCompany={setModalCompany} />}
               {section === 'companies' && (
-                <CompanyList companies={visibleCompanies} query={query} onQuery={setQuery} onEdit={setModalCompany} onToggle={updateCompanyStatus} onDelete={deleteCompany} />
+                <CompanyList companies={visibleCompanies} query={query} onQuery={setQuery} statusFilter={companyStatusFilter} onStatusFilter={setCompanyStatusFilter} onEdit={setModalCompany} onToggle={updateCompanyStatus} onDelete={setPendingDeleteCompany} />
               )}
               {section === 'users' && <UserList companies={activeCompanies} onEdit={setModalCompany} />}
               {section === 'activity' && <ActivityList companies={activeCompanies} />}
@@ -238,6 +249,7 @@ function OwnerWorkspace({ user, onLogout }) {
         </div>
       </main>
       {modalCompany && <CompanyModal company={modalCompany.company_id ? modalCompany : null} createHrUser={modalCompany.createHrUser} onClose={() => setModalCompany(null)} onSave={saveCompany} />}
+      {pendingDeleteCompany && <CompanyDeleteModal company={pendingDeleteCompany} onClose={() => setPendingDeleteCompany(null)} onConfirm={deleteCompany} />}
     </div>
   );
 }
@@ -292,25 +304,36 @@ function DashboardOverview({ stats, companies, onViewCompanies, onEditCompany })
   );
 }
 
-function CompanyList({ companies, query, onQuery, onEdit, onToggle, onDelete }) {
+function CompanyList({ companies, query, onQuery, statusFilter, onStatusFilter, onEdit, onToggle, onDelete }) {
   return (
-    <section className="owner-panel">
-      <div className="owner-panel-heading owner-list-heading"><div><h2>Company directory</h2><p>Each company receives a private HR workspace and credentials.</p></div><label className="owner-search"><Search size={16} /><input type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search companies or HR users" aria-label="Search companies or HR users" /></label></div>
+    <section className="owner-panel owner-company-directory">
+      <div className="owner-panel-heading owner-list-heading">
+        <div><h2>Company directory</h2><p>Each company gets a private HR workspace and its own sign-in.</p></div>
+        <div className="owner-company-filters">
+          <label className="owner-search"><Search size={16} aria-hidden="true" /><input type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search companies or HR users" aria-label="Search companies or HR users" /></label>
+          <select className="owner-status-filter" value={statusFilter} onChange={(event) => onStatusFilter(event.target.value)} aria-label="Filter companies by status">
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
       <div className="owner-table-wrap">
         <table className="owner-table">
-          <thead><tr><th>Company</th><th>HR account</th><th>Workspace</th><th>Created</th><th>Actions</th></tr></thead>
-          <tbody>{companies.map((company) => (
+          <thead><tr><th>Company</th><th>HR account</th><th>Workspace</th><th>Status</th><th>Created</th><th className="owner-actions-heading">Actions</th></tr></thead>
+          <tbody>{companies.length ? companies.map((company) => (
             <tr key={company.company_id}>
-              <td><span className="owner-company-cell"><span className="owner-company-initial">{company.name.slice(0, 1).toUpperCase()}</span><span><strong>{company.name}</strong><small>{company.company_id}</small></span></span></td>
-              <td><span className="owner-user-cell"><strong>{company.hr_user?.username || 'No HR user'}</strong><small>{company.hr_user?.email || company.hr_user?.name || '—'}</small></span></td>
-              <td><span className="owner-workspace-count">{company.job_count || 0} jobs</span><span className="owner-workspace-count">{company.candidate_count || 0} candidates</span><StatusBadge status={company.status} /></td>
-              <td>{dateLabel(company.created_at)}</td>
-              <td><div className="owner-actions"><button type="button" className="owner-row-action" onClick={() => onEdit(company)}>Manage</button>{company.status !== 'deleted' && <><button type="button" className="owner-row-action" onClick={() => onToggle(company, company.status === 'active' ? 'suspended' : 'active')}>{company.status === 'active' ? 'Suspend' : 'Activate'}</button><button type="button" className="owner-row-action is-danger" onClick={() => onDelete(company)}>Delete</button></>}</div></td>
+              <td><span className="owner-company-cell"><span className="owner-company-initial">{company.name.slice(0, 1).toUpperCase()}</span><span><strong>{company.name}</strong><small className="owner-company-id">{company.company_id}</small></span></span></td>
+              <td><span className="owner-user-cell"><strong>{company.hr_user?.username || 'No HR user'}</strong><small>{company.hr_user?.name || company.hr_user?.email || '—'}</small></span></td>
+              <td className="owner-workspace-cell">{company.job_count || 0} jobs · {company.candidate_count || 0} candidates</td>
+              <td><StatusBadge status={company.status} /></td>
+              <td className="owner-company-date">{dateLabel(company.created_at)}</td>
+              <td><div className="owner-actions"><button type="button" className="owner-row-action" onClick={() => onEdit(company)}>Manage</button><button type="button" className={`owner-row-action ${company.status === 'active' ? 'is-warning' : 'is-success'}`} onClick={() => onToggle(company, company.status === 'active' ? 'suspended' : 'active')}>{company.status === 'active' ? 'Suspend' : 'Activate'}</button><button type="button" className="owner-row-action is-danger" onClick={() => onDelete(company)}>Delete</button></div></td>
             </tr>
-          ))}</tbody>
+          )) : <tr><td className="owner-company-empty" colSpan="6">No matching company accounts.</td></tr>}</tbody>
         </table>
-        {!companies.length && <p className="owner-empty">No matching company accounts.</p>}
       </div>
+      <p className="owner-company-table-note">Deleting asks you to confirm the company name. HR access is disabled; historical records are retained for audit purposes.</p>
     </section>
   );
 }
@@ -356,6 +379,37 @@ function SystemSettingsForm({ settings, onChange, onSave, saving }) {
         <div className="owner-settings-actions"><p>Changes are stored in the system database and apply immediately.</p><button type="submit" className="owner-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Save system settings'}</button></div>
       </form>
     </section>
+  );
+}
+
+function CompanyDeleteModal({ company, onClose, onConfirm }) {
+  const [confirmation, setConfirmation] = useState('');
+  const matchesCompanyName = confirmation.trim() === company.name;
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (matchesCompanyName) onConfirm();
+  };
+
+  return (
+    <div className="owner-modal-backdrop">
+      <section className="owner-modal owner-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-company-title" aria-describedby="delete-company-description">
+        <div className="owner-modal-heading">
+          <div className="owner-delete-icon"><CircleAlert size={20} aria-hidden="true" /></div>
+          <button type="button" className="owner-modal-close" aria-label="Close dialog" onClick={onClose}><X size={18} /></button>
+        </div>
+        <h2 id="delete-company-title">Delete {company.name}?</h2>
+        <p id="delete-company-description">This disables the company&apos;s HR access. Historical records are retained for audit purposes. Type the company name to confirm.</p>
+        <form onSubmit={handleSubmit}>
+          <label htmlFor="delete-company-confirmation">Company name</label>
+          <input id="delete-company-confirmation" autoFocus value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
+          <div className="owner-modal-actions">
+            <button type="button" className="owner-secondary-button" onClick={onClose}>Cancel</button>
+            <button type="submit" className="owner-danger-button" disabled={!matchesCompanyName}>Delete company</button>
+          </div>
+        </form>
+      </section>
+    </div>
   );
 }
 
@@ -423,7 +477,8 @@ function CompanyModal({ company, createHrUser = false, onClose, onSave }) {
 
 function StatusBadge({ status }) {
   const label = status === 'active' ? 'Active' : status === 'deleted' ? 'Deleted' : 'Suspended';
-  return <span className={`owner-status-badge ${status === 'active' ? 'is-active' : status === 'deleted' ? 'is-deleted' : 'is-suspended'}`}><i />{label}</span>;
+  const Icon = status === 'active' ? CircleCheck : status === 'deleted' ? CircleAlert : Pause;
+  return <span className={`owner-status-badge ${status === 'active' ? 'is-active' : status === 'deleted' ? 'is-deleted' : 'is-suspended'}`}><Icon size={13} aria-hidden="true" />{label}</span>;
 }
 
 export default OwnerDashboard;
