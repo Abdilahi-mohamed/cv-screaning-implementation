@@ -5586,6 +5586,159 @@ button { cursor: pointer; }
   font-size: 12px;
 }
 
+.landing-solutions-section {
+  padding-block: 20px 80px;
+}
+
+.landing-solutions-short {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.landing-contact-section {
+  background: #f7f8fc;
+  border-block: 1px solid #eef0f5;
+}
+
+.landing-contact-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, .85fr) minmax(320px, 1.15fr);
+  gap: 48px;
+  align-items: start;
+}
+
+.landing-contact-copy h2 {
+  margin: 6px 0 10px;
+  font-size: 36px;
+  line-height: 1.12;
+  letter-spacing: -.04em;
+}
+
+.landing-contact-copy > p:not(.landing-eyebrow) {
+  max-width: 430px;
+  margin: 0;
+  color: #475569;
+}
+
+.landing-contact-links {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.landing-contact-links a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e2e5ee;
+  border-radius: 10px;
+  background: #fff;
+  text-decoration: none;
+}
+
+.landing-contact-links a > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: #eeeefd;
+  color: #2f2dd6;
+}
+
+.landing-contact-links a > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.landing-contact-links small {
+  color: #64748b;
+  font-size: 9px;
+}
+
+.landing-contact-links strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.landing-contact-form {
+  display: grid;
+  gap: 13px;
+  padding: 22px;
+  border: 1px solid #e2e5ee;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 16px 44px rgba(15, 23, 42, .07);
+}
+
+.landing-contact-form > div {
+  display: grid;
+  gap: 6px;
+}
+
+.landing-contact-form label {
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.landing-contact-form input,
+.landing-contact-form textarea {
+  width: 100%;
+  border: 1px solid #dfe3ed;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.landing-contact-form input {
+  height: 42px;
+  padding: 0 12px;
+}
+
+.landing-contact-form textarea {
+  resize: vertical;
+  min-height: 110px;
+  padding: 10px 12px;
+}
+
+.landing-contact-form input:focus,
+.landing-contact-form textarea:focus {
+  border-color: #2f2dd6;
+  box-shadow: 0 0 0 3px rgba(47, 45, 214, .1);
+}
+
+.landing-contact-form button {
+  justify-self: start;
+  border: 0;
+}
+
+.landing-contact-form button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.landing-contact-status {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.landing-contact-status.is-success { color: #047857; }
+.landing-contact-status.is-error { color: #b91c1c; }
+
+.landing-footer-social {
+  display: flex;
+  gap: 6px;
+}
+
 .landing-menu-button {
   display: none;
   width: 38px;
@@ -6043,6 +6196,15 @@ button { cursor: pointer; }
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .landing-contact-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+
+  .landing-solutions-short {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .landing-ranking-layout {
     gap: 28px;
   }
@@ -6283,6 +6445,14 @@ button { cursor: pointer; }
   .landing-solutions,
   .landing-trust {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing-solutions-short {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing-contact-copy h2 {
+    font-size: 28px;
   }
 
   .landing-pricing-card {
