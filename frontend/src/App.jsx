@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Archive, BriefcaseBusiness, CalendarDays, CircleCheck, CircleDashed, CircleX, ClipboardCheck, Clock3, Download, ExternalLink, LayoutDashboard, Link2, Plus, Printer, Search, Settings as SettingsIcon, Sparkles, Upload, Users } from 'lucide-react';
 import LoginPage from './LoginPage.jsx';
 import LandingPage from './LandingPage.jsx';
+import CompanyRegistrationPage from './CompanyRegistrationPage.jsx';
 import OwnerDashboard from './OwnerDashboard.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -156,6 +157,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/register" element={<CompanyRegistrationPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/owner/*" element={<OwnerDashboard />} />
         <Route path="/apply/:jobId" element={<PublicJobPage theme={theme} />} />
