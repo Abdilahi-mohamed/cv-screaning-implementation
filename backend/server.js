@@ -93,6 +93,7 @@ app.use('/api/evaluations', require('./routes/evaluationRoutes'));
 app.use('/api/feedback', require('./routes/feedbackRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/owner', require('./routes/ownerRoutes'));
+app.use('/api/contact', require('./routes/contactRoutes'));
 
 app.get('/api/health', (req, res) => {
   res.json({
