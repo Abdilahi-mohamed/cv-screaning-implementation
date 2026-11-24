@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import {
   ArrowRight,
   BarChart3,
@@ -8,15 +7,11 @@ import {
   Check,
   FileCheck2,
   GraduationCap,
-  ExternalLink,
   Link2,
-  Mail,
   Menu,
   MessageSquareText,
-  MessageCircle,
   Plus,
   SearchCheck,
-  Send,
   ShieldCheck,
   Sparkles,
   X,
@@ -32,39 +27,52 @@ function BrandMark({ light = false }) {
   );
 }
 
+function WhatsAppIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20.52 3.48A11.8 11.8 0 0 0 12.06 0C5.55 0 .25 5.29.25 11.81c0 2.08.54 4.11 1.57 5.9L.13 24l6.44-1.69a11.8 11.8 0 0 0 5.49 1.4h.01c6.5 0 11.8-5.29 11.8-11.81 0-3.16-1.23-6.12-3.35-8.42Zm-8.46 18.17a9.78 9.78 0 0 1-4.98-1.36l-.36-.21-3.82 1 1.02-3.72-.23-.38a9.78 9.78 0 0 1-1.51-5.17c0-5.42 4.41-9.82 9.83-9.82 2.62 0 5.09 1.02 6.94 2.88a9.74 9.74 0 0 1 2.88 6.94c0 5.42-4.41 9.84-9.77 9.84Zm5.39-7.37c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.66.15-.2.3-.76.96-.93 1.16-.17.2-.34.22-.64.08-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.34.44-.51.15-.17.2-.3.3-.49.1-.2.05-.37-.02-.51-.08-.15-.66-1.59-.91-2.18-.24-.57-.48-.5-.66-.51h-.56c-.2 0-.51.07-.78.37-.27.3-1.02 1-1.02 2.43 0 1.43 1.05 2.82 1.19 3.01.15.2 2.06 3.15 5 4.42.7.3 1.24.48 1.67.62.7.22 1.34.19 1.84.12.56-.08 1.75-.71 2-1.4.24-.69.24-1.28.17-1.4-.07-.12-.27-.2-.57-.34Z" />
+    </svg>
+  );
+}
+
+function GmailIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#EA4335" d="M24 5v14c0 1.1-.9 2-2 2h-2V7.3l-8 6.2-8-6.2V21H2c-1.1 0-2-.9-2-2V5c0-.74.4-1.38 1-1.73L12 12l11-8.73A2 2 0 0 1 24 5Z"/>
+      <path fill="#34A853" d="M12 12 4 5.8V21H2V5l10 7Z"/>
+      <path fill="#4285F4" d="M22 5v16h-2V5.8L12 12V9l10-7c.6.35 1 .99 1 1.73V5Z"/>
+      <path fill="#FBBC04" d="M4 5.8V21h16V5.8l-8 6.2-8-6.2Z" opacity=".15"/>
+    </svg>
+  );
+}
+
+function LinkedInIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="#0A66C2" aria-hidden="true">
+      <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12Zm1.78 13.02H3.56V9h3.56v11.45ZM22.23 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.46c.98 0 1.77-.77 1.77-1.73V1.73C24 .77 23.21 0 22.23 0Z"/>
+    </svg>
+  );
+}
+
+function GitHubIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 .5A12 12 0 0 0 8.2 23.88c.6.11.82-.26.82-.58v-2.23c-3.34.73-4.04-1.42-4.04-1.42-.55-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.62-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.21.69.82.58A12 12 0 0 0 12 .5Z"/>
+    </svg>
+  );
+}
+
 function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
-  const [contactStatus, setContactStatus] = useState({ type: '', message: '' });
-  const [contactSubmitting, setContactSubmitting] = useState(false);
-  const getStarted = { pathname: '/login', state: { from: '/upload' } };
+  const createAccount = { pathname: '/register', state: { from: '/dashboard' } };
 
   const closeMenu = () => setMenuOpen(false);
   const contactLinks = [
-    { label: 'Email', value: 'abdilahimohamed459@gmail.com', href: 'mailto:abdilahimohamed459@gmail.com', icon: Mail },
-    { label: 'WhatsApp', value: 'Chat on WhatsApp', href: 'https://wa.me/252634594307?s=p', icon: MessageCircle },
-    { label: 'LinkedIn', value: 'Abdilahi Mohamed', href: 'https://www.linkedin.com/in/abdilahi-mohamed-564317393', icon: ExternalLink },
-    { label: 'GitHub', value: 'Abdilahi-mohamed', href: 'https://github.com/Abdilahi-mohamed', icon: ExternalLink },
+    { label: 'WhatsApp', value: 'Chat on WhatsApp', href: 'https://wa.me/252634594307?s=p', icon: WhatsAppIcon },
+    { label: 'Gmail', value: 'abdilahimohamed459@gmail.com', href: 'mailto:abdilahimohamed459@gmail.com', icon: GmailIcon },
+    { label: 'LinkedIn', value: 'Abdilahi Mohamed', href: 'https://www.linkedin.com/in/abdilahi-mohamed-564317393', icon: LinkedInIcon },
+    { label: 'GitHub', value: 'Abdilahi-mohamed', href: 'https://github.com/Abdilahi-mohamed', icon: GitHubIcon },
   ];
-
-  const handleContactSubmit = async (event) => {
-    event.preventDefault();
-    setContactSubmitting(true);
-    setContactStatus({ type: '', message: '' });
-
-    try {
-      const response = await axios.post('/api/contact', contactForm);
-      setContactStatus({ type: 'success', message: response.data.message });
-      setContactForm({ name: '', email: '', message: '' });
-    } catch (error) {
-      setContactStatus({
-        type: 'error',
-        message: error.response?.data?.message || 'Unable to send your message. Please use email or WhatsApp.',
-      });
-    } finally {
-      setContactSubmitting(false);
-    }
-  };
 
   return (
     <main className="landing-page">
@@ -85,7 +93,7 @@ function LandingPage() {
 
           <div className="landing-nav-actions">
             <Link className="landing-button landing-button-secondary landing-signin" to="/login">Login</Link>
-            <Link className="landing-button landing-button-primary landing-get-started" to={getStarted}>Get Started</Link>
+            <Link className="landing-button landing-button-primary landing-get-started" to={createAccount}>Create Account</Link>
             <button className="landing-menu-button" type="button" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -101,7 +109,7 @@ function LandingPage() {
             <h1>Smarter Hiring Starts with <em>AI-Powered CV Screening.</em></h1>
             <p className="landing-lede">Analyze CVs, evaluate candidates against job requirements, and rank applicants with clear 0–100 scores.</p>
             <div className="landing-hero-actions">
-              <Link className="landing-button landing-button-primary" to={getStarted}>Start Screening <ArrowRight size={18} /></Link>
+              <Link className="landing-button landing-button-primary" to={createAccount}>Create Account <ArrowRight size={18} /></Link>
               <a className="landing-button landing-button-secondary" href="#features">Explore Features</a>
             </div>
           </div>
@@ -281,25 +289,6 @@ function LandingPage() {
               ))}
             </div>
           </div>
-
-          <form className="landing-contact-form" onSubmit={handleContactSubmit}>
-            <div>
-              <label htmlFor="contact-name">Name</label>
-              <input id="contact-name" name="name" value={contactForm.name} onChange={(event) => setContactForm((form) => ({ ...form, name: event.target.value }))} required minLength={2} maxLength={100} />
-            </div>
-            <div>
-              <label htmlFor="contact-email">Email</label>
-              <input id="contact-email" name="email" type="email" value={contactForm.email} onChange={(event) => setContactForm((form) => ({ ...form, email: event.target.value }))} required maxLength={254} />
-            </div>
-            <div>
-              <label htmlFor="contact-message">Message</label>
-              <textarea id="contact-message" name="message" rows="5" value={contactForm.message} onChange={(event) => setContactForm((form) => ({ ...form, message: event.target.value }))} required minLength={10} maxLength={2000} />
-            </div>
-            {contactStatus.message && <p className={`landing-contact-status is-${contactStatus.type}`} role="status">{contactStatus.message}</p>}
-            <button className="landing-button landing-button-primary" type="submit" disabled={contactSubmitting}>
-              {contactSubmitting ? 'Sending…' : 'Send Message'} <Send size={16} />
-            </button>
-          </form>
         </div>
       </section>
 
@@ -311,7 +300,7 @@ function LandingPage() {
           <h2>Find the Right Talent.</h2>
           <p>Modernize recruitment with intelligent CV analysis and structured candidate evaluation.</p>
           <div>
-            <Link className="landing-button landing-button-light" to={getStarted}>Start Screening <ArrowRight size={17} /></Link>
+            <Link className="landing-button landing-button-light" to={createAccount}>Create Account <ArrowRight size={17} /></Link>
           </div>
         </div>
       </section>
@@ -327,10 +316,10 @@ function LandingPage() {
             <Link to="/login">Login</Link>
           </nav>
           <nav className="landing-footer-social" aria-label="Social and contact links">
-            <a href="mailto:abdilahimohamed459@gmail.com" aria-label="Email"><Mail size={15} /></a>
-            <a href="https://wa.me/252634594307?s=p" target="_blank" rel="noreferrer" aria-label="WhatsApp"><MessageCircle size={15} /></a>
-            <a href="https://www.linkedin.com/in/abdilahi-mohamed-564317393" target="_blank" rel="noreferrer" aria-label="LinkedIn"><ExternalLink size={15} /></a>
-            <a href="https://github.com/Abdilahi-mohamed" target="_blank" rel="noreferrer" aria-label="GitHub"><ExternalLink size={15} /></a>
+            <a href="mailto:abdilahimohamed459@gmail.com" aria-label="Gmail"><GmailIcon size={16} /></a>
+            <a href="https://wa.me/252634594307?s=p" target="_blank" rel="noreferrer" aria-label="WhatsApp"><WhatsAppIcon size={16} /></a>
+            <a href="https://www.linkedin.com/in/abdilahi-mohamed-564317393" target="_blank" rel="noreferrer" aria-label="LinkedIn"><LinkedInIcon size={16} /></a>
+            <a href="https://github.com/Abdilahi-mohamed" target="_blank" rel="noreferrer" aria-label="GitHub"><GitHubIcon size={16} /></a>
           </nav>
           <p>© 2026 CV Screening</p>
         </div>

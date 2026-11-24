@@ -194,11 +194,14 @@ const updateCompany = async (req, res, next) => {
       company.name = name;
     }
     if (req.body?.status !== undefined) {
-      if (!['active', 'suspended'].includes(req.body.status)) return res.status(400).json({ message: 'Company status must be active or suspended.' });
+      if (!['pending', 'active', 'suspended'].includes(req.body.status)) return res.status(400).json({ message: 'Company status must be pending, active, or suspended.' });
       company.status = req.body.status;
       if (req.body.status === 'suspended') {
         const companyUsers = await User.find({ role: 'hr', company_id: companyId }).select('_id');
         await Session.deleteMany({ user_id: { $in: companyUsers.map((user) => user._id) } });
+        await User.updateMany({ role: 'hr', company_id: companyId }, { $set: { active: false } });
+      } else if (req.body.status === 'active') {
+        await User.updateMany({ role: 'hr', company_id: companyId }, { $set: { active: true } });
       }
     }
     company.updated_at = new Date();

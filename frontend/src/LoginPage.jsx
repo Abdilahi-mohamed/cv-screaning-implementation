@@ -52,6 +52,7 @@ function LoginPage() {
           {error && <p className="auth-error" role="alert">{error}</p>}
           <button type="submit" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign in'}</button>
         </form>
+        {location.state?.success && <p className="auth-success" role="status">{location.state.success}</p>}
         <p className="auth-footnote"><LockKeyhole size={14} aria-hidden="true" /> Owner and HR accounts use the same sign-in page</p>
       </section>
     </main>

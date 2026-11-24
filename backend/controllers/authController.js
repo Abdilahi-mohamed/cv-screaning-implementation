@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const Company = require('../models/Company');
+const PaymentRegistration = require('../models/PaymentRegistration');
 const Session = require('../models/Session');
 const User = require('../models/User');
 const { createSession, hashPassword, hashSessionToken, verifyPassword } = require('../services/authService');
@@ -194,6 +196,97 @@ const setupOwner = async (req, res, next) => {
   }
 };
 
+const registerCompany = async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'Registration requires the configured database.' });
+    }
+
+    const name = String(req.body?.name || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const companyName = String(req.body?.companyName || '').trim();
+    const username = String(req.body?.username || '').trim().toLowerCase();
+    const password = req.body?.password;
+    const confirmPassword = req.body?.confirmPassword;
+    const provider = String(req.body?.provider || '').trim();
+    const senderAccount = String(req.body?.senderAccount || '').trim();
+    const amount = Number(req.body?.amount);
+    const acceptedTerms = req.body?.acceptedTerms === true;
+
+    if (name.length < 2 || name.length > 100) return res.status(400).json({ message: 'Enter a valid full name.' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return res.status(400).json({ message: 'Enter a valid email address.' });
+    if (companyName.length < 2 || companyName.length > 120) return res.status(400).json({ message: 'Company name must be between 2 and 120 characters.' });
+    if (!/^[a-z0-9][a-z0-9._-]{2,39}$/.test(username)) return res.status(400).json({ message: 'Username must be 3–40 characters using letters, numbers, dots, underscores, or hyphens.' });
+    if (typeof password !== 'string' || password.length < 8 || password.length > 256
+      || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and symbol.' });
+    }
+    if (password !== confirmPassword) return res.status(400).json({ message: 'Password and confirm password do not match.' });
+    if (!Number.isFinite(amount) || amount < 25) return res.status(400).json({ message: 'Payment amount must be 25 USD or more.' });
+    if (!['ZAAD', 'eDahab', 'Bank Transfer', 'Golis', 'Hormuud'].includes(provider)) return res.status(400).json({ message: 'Select a valid payment provider.' });
+    if (!acceptedTerms) return res.status(400).json({ message: 'Accept the Terms & Conditions to continue.' });
+
+    const accountPattern = provider === 'Bank Transfer'
+      ? /^[A-Za-z0-9][A-Za-z0-9 -]{5,34}$/
+      : /^\+?[0-9]{7,15}$/;
+    if (!accountPattern.test(senderAccount)) {
+      return res.status(400).json({
+        message: provider === 'Bank Transfer'
+          ? 'Enter a valid bank account number.'
+          : 'Enter a valid phone number for the selected provider.',
+      });
+    }
+
+    await User.init();
+    if (await User.findOne({ $or: [{ username }, { email }] })) {
+      return res.status(409).json({ message: 'That username or email address is already in use.' });
+    }
+
+    const company = await Company.create({
+      company_id: `company_${crypto.randomUUID()}`,
+      name: companyName,
+      status: 'pending',
+    });
+
+    try {
+      const user = await User.create({
+        username,
+        name,
+        email,
+        role: 'hr',
+        company_id: company.company_id,
+        password_hash: await hashPassword(password),
+        active: false,
+        permissions: ['jobs:manage', 'candidates:manage', 'settings:manage'],
+      });
+      const reference = `CVS-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+      await PaymentRegistration.create({
+        reference,
+        company_id: company.company_id,
+        user_id: user._id,
+        amount,
+        provider,
+        sender_account: senderAccount,
+        status: 'Pending',
+      });
+
+      return res.status(201).json({
+        message: 'Company registration submitted. Payment verification is pending approval.',
+        reference,
+        status: 'pending',
+      });
+    } catch (error) {
+      await PaymentRegistration.deleteMany({ company_id: company.company_id });
+      await User.deleteMany({ role: 'hr', company_id: company.company_id });
+      await Company.deleteOne({ company_id: company.company_id });
+      throw error;
+    }
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ message: 'That username or email address is already in use.' });
+    return next(error);
+  }
+};
+
 const registerOwner = async (req, res, next) => {
   try {
     if (mongoose.connection.readyState !== 1) {
@@ -247,6 +340,7 @@ module.exports = {
   loginAny: login(),
   logoutHR: logout('hr'),
   logoutOwner: logout('owner'),
+  registerCompany,
   registerOwner,
   ownerSetupStatus,
   setupOwner,
