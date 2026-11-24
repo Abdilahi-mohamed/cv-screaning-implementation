@@ -1,14 +1,24 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  Award,
   ArrowRight,
   BarChart3,
+  BriefcaseBusiness,
   Check,
+  ClipboardCheck,
   Download,
+  FileCheck2,
+  GraduationCap,
   Link2,
+  Menu,
   MessageSquareText,
   Plus,
+  SearchCheck,
   ShieldCheck,
   Sparkles,
+  Users,
+  X,
 } from 'lucide-react';
 
 function BrandMark({ light = false }) {
@@ -23,6 +33,7 @@ function BrandMark({ light = false }) {
 
 function LandingPage() {
   const getStarted = '/login';
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <main className="landing-page">
@@ -32,15 +43,21 @@ function LandingPage() {
             <BrandMark />
             <span>CV Screening</span>
           </a>
-          <nav className="landing-nav-links" aria-label="Main navigation">
-            <a href="#how">How it works</a>
-            <a href="#features">Features</a>
-            <a href="#teams">For teams</a>
-            <a href="#faq">FAQ</a>
+          <nav className={`landing-nav-links${menuOpen ? ' is-open' : ''}`} aria-label="Main navigation">
+            <a href="#home" onClick={() => setMenuOpen(false)}>Home</a>
+            <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
+            <a href="#how" onClick={() => setMenuOpen(false)}>How It Works</a>
+            <a href="#solutions" onClick={() => setMenuOpen(false)}>Solutions</a>
+            <a href="#pricing" onClick={() => setMenuOpen(false)}>Pricing</a>
+            <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
+            <a href="#contact" onClick={() => setMenuOpen(false)}>Contact</a>
           </nav>
           <div className="landing-nav-actions">
-            <Link className="landing-button landing-button-secondary landing-signin" to="/login">Sign in</Link>
-            <Link className="landing-button landing-button-primary" to={getStarted} state={{ from: '/upload' }}>Get started</Link>
+            <Link className="landing-button landing-button-secondary landing-signin" to="/login">Login</Link>
+            <Link className="landing-button landing-button-primary landing-get-started" to={getStarted} state={{ from: '/upload' }}>Get Started</Link>
+            <button className="landing-menu-button" type="button" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
       </header>
@@ -49,14 +66,14 @@ function LandingPage() {
         <div className="landing-grid-background" aria-hidden="true" />
         <div className="landing-wrap landing-hero-inner">
           <div className="landing-hero-copy">
-            <span className="landing-chip"><strong>NEW</strong>Interview questions written from each CV</span>
-            <h1>Screen 200 CVs in minutes. <em>Hire on evidence.</em></h1>
-            <p className="landing-lede">CV Screening reads every application, scores it against your job&apos;s real requirements and shows the reason behind each score, so your team shortlists faster and fairer.</p>
+            <span className="landing-chip"><strong>AI RECRUITMENT</strong>Structured candidate evaluation</span>
+            <h1>Smarter Hiring Starts with <em>AI-Powered CV Screening.</em></h1>
+            <p className="landing-lede">Transform your recruitment process with intelligent CV analysis, automated candidate evaluation, and AI-powered ranking. Find the right talent faster and make better hiring decisions.</p>
             <div className="landing-hero-actions">
-              <Link className="landing-button landing-button-primary" to={getStarted} state={{ from: '/upload' }}>Create your first job <ArrowRight size={18} aria-hidden="true" /></Link>
-              <a className="landing-button landing-button-secondary" href="#how">See how it works</a>
+              <Link className="landing-button landing-button-primary" to={getStarted} state={{ from: '/upload' }}>Start Screening <ArrowRight size={18} aria-hidden="true" /></Link>
+              <a className="landing-button landing-button-secondary" href="#features">Explore Features</a>
             </div>
-            <p className="landing-footnote">No setup fee · Works with PDF and DOCX · Your data stays in your workspace</p>
+            <p className="landing-footnote">CV uploads · Job-specific evaluation · Explainable 0–100 scores</p>
           </div>
 
           <div className="landing-demo" role="img" aria-label="Illustration of a CV being scanned and matched to a job">
@@ -142,12 +159,15 @@ function LandingPage() {
           </div>
           <div className="landing-features">
             {[
-              { icon: Link2, title: 'Job link builder', text: 'A branded application form with your own fields: documents, images, text or numbers.' },
-              { icon: BarChart3, title: 'Ranked shortlist', text: 'Candidates sorted by match, filtered by status, searchable by skill or name.' },
-              { icon: Sparkles, title: 'AI summaries', text: 'A short, neutral summary of each CV. It describes the CV, never the person.', ai: true },
-              { icon: MessageSquareText, title: 'Interview questions', text: 'Questions written from each CV, including the gaps worth probing. Print or save as PDF.', ai: true },
-              { icon: Download, title: 'Export anytime', text: 'Download candidate shortlists and results as CSV for your team.' },
-              { icon: ShieldCheck, title: 'Private workspaces', text: 'Each company’s data is isolated. Access is checked on every request.' },
+              { icon: SearchCheck, title: 'AI CV Analysis', text: 'Extract and analyze relevant information from uploaded CV documents.', ai: true },
+              { icon: ClipboardCheck, title: 'Smart Candidate Evaluation', text: 'Compare candidates against the requirements of each specific vacancy.', ai: true },
+              { icon: BarChart3, title: 'Candidate Ranking', text: 'Rank applicants with transparent evaluation scores from 0–100.' },
+              { icon: BriefcaseBusiness, title: 'Job Management', text: 'Create, manage, and organize vacancies, qualifications, and requirements.' },
+              { icon: Link2, title: 'Shareable Job Links', text: 'Publish a job-specific application link for online candidate submissions.' },
+              { icon: FileCheck2, title: 'Document Management', text: 'Manage CVs, certificates, KUR images, and supporting documents.' },
+              { icon: MessageSquareText, title: 'AI Interview Questions', text: 'Generate up to 10 relevant questions based on the role and candidate profile.', ai: true },
+              { icon: BarChart3, title: 'Recruitment Analytics', text: 'Monitor applications, evaluations, rankings, and recruitment progress.' },
+              { icon: ShieldCheck, title: 'Recruiter Feedback', text: 'Review AI results and record recruiter feedback for every candidate.' },
             ].map(({ icon: Icon, title, text, ai }) => (
               <article className="landing-feature" key={title}><span className={ai ? 'is-ai' : ''}><Icon size={22} aria-hidden="true" /></span><h3>{title}</h3><p>{text}</p></article>
             ))}
@@ -155,20 +175,72 @@ function LandingPage() {
         </div>
       </section>
 
-      <section id="teams" className="landing-wrap landing-teams-section">
-        <div className="landing-section-heading">
-          <p className="landing-eyebrow">For teams</p>
-          <h2>Built for HR teams and the people who run the platform</h2>
+      <section className="landing-section landing-ranking-section">
+        <div className="landing-wrap landing-ranking-layout">
+          <div className="landing-section-heading landing-ranking-heading">
+            <p className="landing-eyebrow">Candidate ranking</p>
+            <h2>Compare applicants with consistent 0–100 scoring</h2>
+            <p>AI scores support recruiter decisions; they do not independently make final hiring decisions.</p>
+          </div>
+          <div className="landing-ranking-panel">
+            <div className="landing-ranking-toolbar"><strong>Senior Full Stack Engineer</strong><span>Sample data</span></div>
+            <div className="landing-ranking-table" role="table" aria-label="Illustrative candidate ranking">
+              {[
+                ['1', 'Amina Hassan', 'React, Node.js, SQL', '87%', 'Strong match'],
+                ['2', 'Omar Ahmed', 'React, Express, AWS', '81%', 'Strong match'],
+                ['3', 'Fartun Yusuf', 'JavaScript, SQL, PHP', '68%', 'Further review'],
+              ].map(([rank, name, skills, score, status]) => (
+                <div className="landing-ranking-row" role="row" key={name}>
+                  <span className="landing-rank">{rank}</span>
+                  <span><strong>{name}</strong><small>Applied position · Senior Full Stack Engineer</small></span>
+                  <span className="landing-ranking-skills"><GraduationCap size={15} />{skills}</span>
+                  <b>{score}</b>
+                  <span className={status === 'Strong match' ? 'is-success' : 'is-review'}>{status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="landing-roles">
-          <article className="landing-role landing-role-hr">
-            <p className="landing-eyebrow">HR workspace</p><h3>Hire with less reading</h3>
-            <ul><li><Check />Create jobs and branded application forms</li><li><Check />Run AI evaluation on every CV at once</li><li><Check />Shortlist, review or reject with a reason</li><li><Check />Print tailored interview questions</li></ul>
-          </article>
-          <article className="landing-role landing-role-admin">
-            <p className="landing-eyebrow">System admin</p><h3>Run many companies from one place</h3>
-            <ul><li><Check />Create, suspend or remove company workspaces</li><li><Check />Manage HR users and their permissions</li><li><Check />See sign-ins and activity across the platform</li><li><Check />Set platform-wide defaults in one screen</li></ul>
-          </article>
+      </section>
+
+      <section className="landing-wrap landing-report-section">
+        <div className="landing-report-preview">
+          <div className="landing-report-header"><span className="landing-report-avatar">AH</span><div><p>Candidate overview</p><h3>Amina Hassan</h3></div><b>87 / 100</b></div>
+          <div className="landing-report-grid">
+            <article><Award size={18} /><span><strong>Relevant skills</strong><small>React, Node.js, SQL, Express</small></span></article>
+            <article><GraduationCap size={18} /><span><strong>Education match</strong><small>Degree requirement met</small></span></article>
+            <article><BriefcaseBusiness size={18} /><span><strong>Experience match</strong><small>4 years of relevant experience</small></span></article>
+            <article><ClipboardCheck size={18} /><span><strong>Job requirements</strong><small>6 of 7 primary requirements</small></span></article>
+          </div>
+          <div className="landing-report-bottom">
+            <div><p><strong>Strengths</strong></p><ul><li>Production React and Node.js experience</li><li>Strong database and API background</li></ul></div>
+            <div><p><strong>Further review</strong></p><ul><li>Confirm TypeScript experience</li><li>Validate leadership scope</li></ul></div>
+          </div>
+        </div>
+        <div className="landing-report-copy">
+          <p className="landing-eyebrow">AI evaluation report</p>
+          <h2>See the evidence behind every recommendation</h2>
+          <p>Review skills, education, experience, requirement matches, strengths, and areas needing further discussion before making a decision.</p>
+          <div className="landing-question-preview"><MessageSquareText size={18} /><div><strong>Suggested interview questions</strong><small>Up to 10 role and profile-specific questions</small></div></div>
+        </div>
+      </section>
+
+      <section id="solutions" className="landing-wrap landing-teams-section">
+        <div className="landing-section-heading">
+          <p className="landing-eyebrow">Who can use CV Screening?</p>
+          <h2>Designed for organized, modern recruitment teams</h2>
+        </div>
+        <div className="landing-solutions">
+          {[
+            ['HR Departments', 'Manage every vacancy and candidate in a centralized workflow.'],
+            ['Recruitment Agencies', 'Evaluate applicants consistently across multiple client roles.'],
+            ['Small & Medium Businesses', 'Reduce repetitive screening without adding administrative overhead.'],
+            ['Large Organizations', 'Standardize job-specific evaluation across hiring teams.'],
+            ['Hiring Managers', 'Review ranked candidates and the evidence behind each score.'],
+            ['Talent Acquisition Teams', 'Improve visibility, comparisons, and recruitment progress.'],
+          ].map(([title, text]) => (
+            <article className="landing-solution" key={title}><Users size={20} /><h3>{title}</h3><p>{text}</p></article>
+          ))}
         </div>
       </section>
 
@@ -176,9 +248,24 @@ function LandingPage() {
         <div className="landing-wrap">
           <div className="landing-section-heading"><p className="landing-eyebrow">Fair by design</p><h2>AI that helps you judge CVs, not people</h2></div>
           <div className="landing-trust">
-            <article><h3>Neutral language</h3><p>Summaries say “No TypeScript listed”, never “weak developer”. The rules are built into every prompt.</p></article>
-            <article><h3>You stay in control</h3><p>The AI ranks and explains. A person makes every shortlist and rejection.</p></article>
-            <article><h3>Keys stay on the server</h3><p>AI provider keys never reach the browser, and errors are shown instead of silently switching providers.</p></article>
+            <article><Sparkles size={22} /><h3>AI-assisted recruitment</h3><p>Automate document analysis and candidate evaluation while keeping recruiters in control.</p></article>
+            <article><SearchCheck size={22} /><h3>Structured evaluation</h3><p>Compare candidates consistently against job-specific skills, education, and experience.</p></article>
+            <article><BriefcaseBusiness size={22} /><h3>Organized workflows</h3><p>Centralize applications, rankings, reports, feedback, and hiring progress.</p></article>
+            <article><ShieldCheck size={22} /><h3>Human final decision</h3><p>AI supports recruiter decisions; hiring managers make every final selection.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="landing-wrap landing-pricing-section">
+        <div className="landing-pricing-card">
+          <div>
+            <p className="landing-eyebrow">Pricing</p>
+            <h2>Start with the recruitment workspace you need</h2>
+            <p>Public subscription pricing is not currently configured. Contact the system owner for workspace access and organization requirements.</p>
+          </div>
+          <div className="landing-pricing-actions">
+            <Link className="landing-button landing-button-primary" to={getStarted} state={{ from: '/upload' }}>Get Started</Link>
+            <a className="landing-button landing-button-secondary" href="#contact">Contact Sales</a>
           </div>
         </div>
       </section>
@@ -187,32 +274,37 @@ function LandingPage() {
         <div className="landing-section-heading is-centered"><p className="landing-eyebrow">FAQ</p><h2>Questions, answered</h2></div>
         <div className="landing-faq">
           {[
-            ['What file types can candidates upload?', 'PDF and DOCX for CVs. You can also add fields for certificates, ID photos and other documents or images.'],
-            ['How is the match score calculated?', 'Each CV is compared with the requirements you set: must-have skills, years of experience, qualifications and any custom criteria. The score breakdown is shown next to it.'],
-            ['Can I change a decision the AI suggested?', 'Yes. Scores are a guide. You set every status (Shortlisted, Needs review or Rejected) yourself.'],
-            ['Is our company’s data kept separate?', 'Yes. Every company gets an isolated workspace, and HR access is checked on every protected request.'],
-            ['Can I export my data?', 'Shortlists and candidate results can be downloaded as CSV for use in spreadsheets.'],
+            ['What is CV Screening?', 'CV Screening is an AI-assisted recruitment platform for managing vacancies, receiving applications, analyzing CV documents, evaluating candidates, and organizing hiring decisions.'],
+            ['How does AI CV screening work?', 'The system extracts CV information and compares it with job-specific requirements such as skills, experience, qualifications, and custom criteria.'],
+            ['Which CV document formats are supported?', 'The configured application workflow supports PDF and DOCX CV uploads, plus additional company-configured document fields where enabled.'],
+            ['Can I create multiple job vacancies?', 'Yes. Authorized recruiters can create and manage multiple vacancies from their company workspace.'],
+            ['How are candidate scores calculated?', 'Candidates receive a 0–100 AI evaluation based on job requirements and available CV evidence. The report displays the relevant skills, experience, education, and requirement matches.'],
+            ['Can I generate job application links?', 'Yes. Each vacancy can generate a shareable application link for candidate submissions.'],
+            ['Can the system generate interview questions?', 'Yes. The AI can generate up to 10 role- and candidate-relevant interview questions for recruiter review.'],
+            ['Can recruiters review AI evaluation reports?', 'Yes. Recruiters can view candidate reports, scores, strengths, review areas, and provide feedback.'],
+            ['Does AI make the final hiring decision?', 'No. AI scores support recruiter decisions, but a recruiter or hiring manager retains final decision-making authority.'],
+            ['How can I access my account?', 'Use the Login page with your authorized owner or company HR username and password.'],
           ].map(([question, answer], index) => (
             <details key={question} open={index === 0}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>
           ))}
         </div>
       </section>
 
-      <section className="landing-wrap landing-cta-section">
+      <section id="contact" className="landing-wrap landing-cta-section">
         <div className="landing-cta">
           <span className="landing-cta-ring landing-cta-ring-one" aria-hidden="true" />
           <span className="landing-cta-ring landing-cta-ring-two" aria-hidden="true" />
           <BrandMark light />
-          <h2>Screen faster. Hire fairer.</h2>
-          <p>Post your next job today and see a ranked, explained shortlist as soon as CVs arrive.</p>
-          <div><Link className="landing-button landing-button-light" to={getStarted} state={{ from: '/upload' }}>Get started <ArrowRight size={17} aria-hidden="true" /></Link><a className="landing-button landing-button-cta-outline" href="#how">See how it works</a></div>
+          <h2>Find the Right Talent. Make Smarter Hiring Decisions.</h2>
+          <p>Modernize your recruitment process with intelligent CV analysis, candidate evaluation, and automated recruitment workflows.</p>
+          <div><Link className="landing-button landing-button-light" to={getStarted} state={{ from: '/upload' }}>Start Screening <ArrowRight size={17} aria-hidden="true" /></Link><a className="landing-button landing-button-cta-outline" href="#pricing">Contact Us</a></div>
         </div>
       </section>
 
       <footer className="landing-footer">
         <div className="landing-wrap">
           <a className="landing-brand" href="#home"><BrandMark /><span>CV Screening</span></a>
-          <nav aria-label="Footer navigation"><a href="#how">How it works</a><a href="#features">Features</a><a href="#faq">FAQ</a><a href="#teams">For teams</a></nav>
+          <nav aria-label="Footer navigation"><a href="#features">Features</a><a href="#solutions">Solutions</a><a href="#how">How It Works</a><a href="#faq">FAQ</a><a href="#pricing">Pricing</a></nav>
           <p>© 2026 CV Screening · Borama, Somaliland</p>
         </div>
       </footer>
