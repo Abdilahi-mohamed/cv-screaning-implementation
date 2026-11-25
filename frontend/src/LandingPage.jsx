@@ -12,8 +12,6 @@ import {
   MessageSquareText,
   Plus,
   SearchCheck,
-  ShieldCheck,
-  Sparkles,
   X,
 } from 'lucide-react';
 
@@ -235,21 +233,6 @@ function LandingPage() {
               <p>{text}</p>
             </article>
           ))}
-        </div>
-      </section>
-
-      <section className="landing-section">
-        <div className="landing-wrap">
-          <div className="landing-section-heading">
-            <p className="landing-eyebrow">Why CV Screening</p>
-            <h2>Faster, structured, and more consistent hiring</h2>
-          </div>
-          <div className="landing-trust">
-            <article><Sparkles size={22} /><h3>AI-assisted recruitment</h3><p>Reduce repetitive CV review.</p></article>
-            <article><ShieldCheck size={22} /><h3>Human decisions</h3><p>Recruiters retain final control.</p></article>
-            <article><BarChart3 size={22} /><h3>Clear visibility</h3><p>Centralize applications and reports.</p></article>
-            <article><Check size={22} /><h3>Consistent evaluation</h3><p>Compare every candidate by role requirements.</p></article>
-          </div>
         </div>
       </section>
 

@@ -16,6 +16,7 @@ A local CV evaluation dashboard for defining job requirements, uploading candida
 ```bash
 npm install
 cp backend/.env.example backend/.env
+cd backend
 npm run dev
 ```
 
