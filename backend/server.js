@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const net = require('net');
 const express = require('express');
 const cors = require('cors');

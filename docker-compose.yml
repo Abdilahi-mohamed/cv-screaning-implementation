@@ -11,7 +11,9 @@ services:
       - mongo-data:/data/db
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: cv-evolution-backend
     restart: always
     ports:
