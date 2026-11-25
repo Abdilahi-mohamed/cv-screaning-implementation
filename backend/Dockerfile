@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 
-COPY . .
+COPY backend ./backend
 
 EXPOSE 5000
 
