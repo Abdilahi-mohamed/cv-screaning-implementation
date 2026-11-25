@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Archive, BriefcaseBusiness, CalendarDays, CircleCheck, CircleDashed, CircleX, ClipboardCheck, Clock3, Download, ExternalLink, LayoutDashboard, Link2, Plus, Printer, Search, Settings as SettingsIcon, Sparkles, Upload, Users } from 'lucide-react';
-import LoginPage from './LoginPage.jsx';
-import LandingPage from './LandingPage.jsx';
-import CompanyRegistrationPage from './CompanyRegistrationPage.jsx';
-import OwnerDashboard from './OwnerDashboard.jsx';
+
+const LoginPage = lazy(() => import('./LoginPage.jsx'));
+const LandingPage = lazy(() => import('./LandingPage.jsx'));
+const CompanyRegistrationPage = lazy(() => import('./CompanyRegistrationPage.jsx'));
+const OwnerDashboard = lazy(() => import('./OwnerDashboard.jsx'));
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 axios.defaults.withCredentials = true;
@@ -155,15 +156,17 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/register" element={<CompanyRegistrationPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/owner/*" element={<OwnerDashboard />} />
-        <Route path="/apply/:jobId" element={<PublicJobPage theme={theme} />} />
-        <Route path="/apply/:jobId/form" element={<PublicJobPage theme={theme} />} />
-        <Route path="*" element={<HRProtectedApp theme={theme} setTheme={setTheme} />} />
-      </Routes>
+      <Suspense fallback={null}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/register" element={<CompanyRegistrationPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/owner/*" element={<OwnerDashboard />} />
+          <Route path="/apply/:jobId" element={<PublicJobPage theme={theme} />} />
+          <Route path="/apply/:jobId/form" element={<PublicJobPage theme={theme} />} />
+          <Route path="*" element={<HRProtectedApp theme={theme} setTheme={setTheme} />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
